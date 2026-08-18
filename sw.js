@@ -1,437 +1,62 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Ember — Journal de trading</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#07070A">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Ember">
-<link rel="stylesheet" href="css/style.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
-</head>
-<body>
-<div class="app-shell">
+// ===================== sw.js =====================
+// Met en cache les fichiers de l'app pour qu'Ember fonctionne hors-ligne
+// et soit installable comme une vraie application.
+const CACHE_NAME = 'ember-cache-v3';
+const ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './css/style.css',
+  './js/storage.js',
+  './js/utils.js',
+  './js/connect.js',
+  './js/charts.js',
+  './js/ai.js',
+  './js/app.js',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
+];
 
-  <!-- ===================== SIDEBAR ===================== -->
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-mark">E</div>
-      <div>
-        <div class="brand-name">Ember</div>
-        <div class="brand-tag">Trading Journal</div>
-      </div>
-    </div>
-    <nav class="nav" id="nav">
-      <button class="nav-item active" data-page="dashboard">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
-        Dashboard
-      </button>
-      <button class="nav-item" data-page="journal">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3V4z"/><path d="M8 9h8M8 13h8M8 17h4"/></svg>
-        Journal
-      </button>
-      <button class="nav-item" data-page="stats">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
-        Statistiques
-      </button>
-      <button class="nav-item" data-page="calendar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-        Calendrier
-      </button>
-      <button class="nav-item" data-page="goals">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
-        Objectifs
-      </button>
-      <button class="nav-item" data-page="coach">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.4 5.5L20 10l-5.6 1.5L12 17l-2.4-5.5L4 10l5.6-1.5L12 3z"/></svg>
-        Coach IA
-      </button>
-      <button class="nav-item" data-page="settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        Réglages
-      </button>
-    </nav>
-    <div class="sidebar-foot">
-      <select id="account-switch" class="account-switch"></select>
-      <div class="sidebar-mini" id="account-mini">—</div>
-    </div>
-  </aside>
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+  );
+});
 
-  <!-- ===================== MAIN ===================== -->
-  <main class="main">
-    <div class="topbar">
-      <div>
-        <div class="topbar-title" id="page-title">Dashboard</div>
-        <div class="topbar-sub" id="page-date">—</div>
-        <div class="topbar-principle" id="page-principle"></div>
-      </div>
-      <div class="topbar-actions">
-        <select id="account-switch-mobile" class="account-switch-mobile"></select>
-        <button class="btn btn-ghost btn-sm" id="btn-connect-account">Connecter un compte</button>
-        <button class="btn btn-ghost btn-sm" id="btn-import-csv">Importer rapport (MT5)</button>
-        <button class="btn btn-primary" id="btn-new-trade">+ Nouveau trade</button>
-      </div>
-    </div>
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(
+      keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+    )).then(() => self.clients.claim())
+  );
+});
 
-    <!-- ---------- DASHBOARD ---------- -->
-    <section class="page active" data-page="dashboard">
-      <div class="grid grid-kpi section-gap">
-        <div class="kpi"><div class="kpi-label">Profit total</div><div class="kpi-value" id="kpi-total">—</div><div class="kpi-sub" id="kpi-total-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">Aujourd'hui</div><div class="kpi-value" id="kpi-day">—</div><div class="kpi-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">Cette semaine</div><div class="kpi-value" id="kpi-week">—</div><div class="kpi-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">Ce mois-ci</div><div class="kpi-value" id="kpi-month">—</div><div class="kpi-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">Win rate</div><div class="kpi-value" id="kpi-winrate">—</div><div class="kpi-sub" id="kpi-winrate-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">Trades</div><div class="kpi-value" id="kpi-count">—</div><div class="kpi-sub" id="kpi-count-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">RR moyen</div><div class="kpi-value" id="kpi-avgrr">—</div><div class="kpi-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">Profit factor</div><div class="kpi-value" id="kpi-pf">—</div><div class="kpi-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">Drawdown actuel</div><div class="kpi-value" id="kpi-dd">—</div><div class="kpi-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">Plus gros gain</div><div class="kpi-value pos" id="kpi-best">—</div><div class="kpi-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">Plus grosse perte</div><div class="kpi-value neg" id="kpi-worst">—</div><div class="kpi-sub">&nbsp;</div></div>
-        <div class="kpi"><div class="kpi-label">Durée moy. en position</div><div class="kpi-value" id="kpi-duration">—</div><div class="kpi-sub">&nbsp;</div></div>
-      </div>
+// Stratégie : réseau d'abord pour les ressources externes (polices, Chart.js),
+// cache d'abord pour les fichiers de l'app (rapide + fonctionne hors-ligne).
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  const isSameOrigin = url.origin === self.location.origin;
 
-      <div id="alerts-box" class="section-gap"></div>
+  if (!isSameOrigin) {
+    // CDN externes (fonts, Chart.js) : réseau, avec repli sur le cache si hors-ligne
+    event.respondWith(
+      fetch(event.request).then((res) => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        return res;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
 
-      <div class="grid grid-2 section-gap">
-        <div class="card">
-          <div class="card-title">Courbe du capital</div>
-          <div class="chart-box tall"><canvas id="chart-equity"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">P&amp;L par trade</div>
-          <div class="chart-box tall"><canvas id="chart-pnl"></canvas></div>
-        </div>
-      </div>
-
-      <div class="grid grid-4 section-gap">
-        <div class="card"><div class="card-title">Gains / pertes</div><div class="chart-box small"><canvas id="chart-winloss"></canvas></div></div>
-        <div class="card"><div class="card-title">Buy / Sell</div><div class="chart-box small"><canvas id="chart-buysell"></canvas></div></div>
-        <div class="card"><div class="card-title">Par actif</div><div class="chart-box small"><canvas id="chart-asset"></canvas></div></div>
-        <div class="card"><div class="card-title">Par session</div><div class="chart-box small"><canvas id="chart-session"></canvas></div></div>
-      </div>
-
-      <div class="grid grid-2">
-        <div class="card">
-          <div class="card-title">Derniers trades</div>
-          <div id="dash-recent"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Objectifs</div>
-          <div id="dash-goals"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ---------- JOURNAL ---------- -->
-    <section class="page" data-page="journal">
-      <div class="toolbar">
-        <input type="text" id="j-search" placeholder="Rechercher (actif, tag, note...)">
-        <select id="j-filter-asset"><option value="">Tous les actifs</option></select>
-        <select id="j-filter-strategy"><option value="">Toutes les stratégies</option></select>
-        <select id="j-filter-session"><option value="">Toutes les sessions</option><option>Asie</option><option>Londres</option><option>New York</option><option>Hors session</option></select>
-        <select id="j-filter-result"><option value="">Tous les résultats</option><option value="win">Gagnants</option><option value="loss">Perdants</option><option value="be">Break-even</option></select>
-        <select id="j-sort">
-          <option value="date-desc">Date (récent)</option>
-          <option value="date-asc">Date (ancien)</option>
-          <option value="pnl-desc">P&amp;L décroissant</option>
-          <option value="pnl-asc">P&amp;L croissant</option>
-          <option value="rr-desc">RR décroissant</option>
-        </select>
-      </div>
-      <div class="trow-head">
-        <div>Date</div><div>Actif</div><div>Sens</div><div>P&amp;L</div><div>P&amp;L %</div><div>RR</div><div>Stratégie</div><div>Session</div><div>Tags</div><div>Actions</div>
-      </div>
-      <div id="journal-list"></div>
-    </section>
-
-    <!-- ---------- STATISTIQUES ---------- -->
-    <section class="page" data-page="stats">
-      <div class="grid grid-4 section-gap">
-        <div class="kpi"><div class="kpi-label">Win rate</div><div class="kpi-value" id="s-winrate">—</div></div>
-        <div class="kpi"><div class="kpi-label">Loss rate</div><div class="kpi-value" id="s-lossrate">—</div></div>
-        <div class="kpi"><div class="kpi-label">Break-even rate</div><div class="kpi-value" id="s-berate">—</div></div>
-        <div class="kpi"><div class="kpi-label">Expectancy</div><div class="kpi-value" id="s-expectancy">—</div></div>
-        <div class="kpi"><div class="kpi-label">Profit moyen</div><div class="kpi-value pos" id="s-avgwin">—</div></div>
-        <div class="kpi"><div class="kpi-label">Perte moyenne</div><div class="kpi-value neg" id="s-avgloss">—</div></div>
-        <div class="kpi"><div class="kpi-label">RR moyen</div><div class="kpi-value" id="s-avgrr">—</div></div>
-        <div class="kpi"><div class="kpi-label">RR max / min</div><div class="kpi-value" id="s-rrminmax" style="font-size:16px;">—</div></div>
-        <div class="kpi"><div class="kpi-label">Série de victoires (record)</div><div class="kpi-value pos" id="s-beststreak">—</div></div>
-        <div class="kpi"><div class="kpi-label">Série de défaites (record)</div><div class="kpi-value neg" id="s-worststreak">—</div></div>
-        <div class="kpi"><div class="kpi-label">Drawdown max</div><div class="kpi-value neg" id="s-maxdd">—</div></div>
-        <div class="kpi"><div class="kpi-label">Drawdown actuel</div><div class="kpi-value" id="s-curdd">—</div></div>
-      </div>
-
-      <div class="grid grid-2 section-gap">
-        <div class="card"><div class="card-title">Performance mensuelle</div><div class="chart-box"><canvas id="chart-monthly"></canvas></div></div>
-        <div class="card"><div class="card-title">Performance annuelle</div><div class="chart-box"><canvas id="chart-yearly"></canvas></div></div>
-      </div>
-
-      <div class="grid grid-2 section-gap">
-        <div class="card"><div class="card-title">Performance par jour de la semaine</div><div id="s-byday"></div></div>
-        <div class="card"><div class="card-title">Performance par heure</div><div id="s-byhour"></div></div>
-      </div>
-
-      <div class="grid grid-2">
-        <div class="card"><div class="card-title">Performance par actif</div><div id="s-byasset"></div></div>
-        <div class="card"><div class="card-title">Performance par stratégie</div><div id="s-bystrategy"></div></div>
-      </div>
-    </section>
-
-    <!-- ---------- CALENDRIER ---------- -->
-    <section class="page" data-page="calendar">
-      <div class="card">
-        <div class="cal-head">
-          <button class="icon-btn" id="cal-prev">‹</button>
-          <div class="cal-month" id="cal-month-label">—</div>
-          <button class="icon-btn" id="cal-next">›</button>
-        </div>
-        <div class="cal-grid" id="cal-dow"></div>
-        <div class="cal-grid" id="cal-grid" style="margin-top:6px;"></div>
-      </div>
-      <div class="card section-gap" id="cal-day-detail" style="display:none;margin-top:16px;"></div>
-    </section>
-
-    <!-- ---------- OBJECTIFS ---------- -->
-    <section class="page" data-page="goals">
-      <div class="flex-between section-gap">
-        <div class="text-dim">Fixe des objectifs et suis ta progression en temps réel.</div>
-        <button class="btn btn-primary" id="btn-new-goal">+ Nouvel objectif</button>
-      </div>
-      <div id="goals-list"></div>
-    </section>
-
-    <!-- ---------- COACH IA ---------- -->
-    <section class="page" data-page="coach">
-      <div class="card">
-        <div class="card-title">Coach IA</div>
-        <p class="text-dim" style="margin:0 0 16px;">Analyse automatiquement l'ensemble de tes trades : erreurs récurrentes, sur-trading, excès de risque, meilleures stratégies, actifs et heures les plus rentables, erreurs psychologiques.</p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-primary" id="btn-coach-full">Analyse complète</button>
-          <button class="btn btn-ghost" id="btn-coach-week">Résumé de la semaine</button>
-          <button class="btn btn-ghost" id="btn-coach-month">Résumé du mois</button>
-        </div>
-        <div id="coach-result"></div>
-      </div>
-    </section>
-
-    <!-- ---------- RÉGLAGES ---------- -->
-    <section class="page" data-page="settings">
-      <div class="grid grid-2 section-gap">
-        <div class="card">
-          <div class="card-title">Comptes <button class="btn btn-ghost btn-sm" id="btn-new-account">+ Compte</button></div>
-          <div id="accounts-list"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Stratégies <button class="btn btn-ghost btn-sm" id="btn-new-strategy">+ Stratégie</button></div>
-          <div id="strategies-list"></div>
-        </div>
-      </div>
-
-      <div class="card section-gap">
-        <div class="card-title">Coach IA — Clé API Anthropic</div>
-        <div class="field">
-          <label for="settings-apikey">Clé API</label>
-          <input type="password" id="settings-apikey" placeholder="sk-ant-...">
-        </div>
-        <p class="text-faint" style="font-size:12px;margin:-4px 0 12px;">Stockée uniquement dans le navigateur (localStorage), jamais envoyée ailleurs qu'à l'API Anthropic. Ne partage jamais ce fichier avec ta clé enregistrée dedans.</p>
-        <button class="btn btn-ghost btn-sm" id="btn-save-apikey">Enregistrer la clé</button>
-      </div>
-
-      <div class="card section-gap">
-        <div class="card-title">Sauvegarde des données</div>
-        <p class="text-dim" style="margin:0 0 14px;">Toutes les données sont stockées localement dans ce navigateur. Exporte régulièrement une sauvegarde.</p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-ghost" id="btn-export">Exporter (JSON)</button>
-          <button class="btn btn-ghost" id="btn-import-json">Importer (JSON)</button>
-          <button class="btn btn-danger" id="btn-reset">Réinitialiser toutes les données</button>
-        </div>
-      </div>
-    </section>
-
-  </main>
-</div>
-
-<!-- ===================== MODALS ===================== -->
-<div class="modal-overlay" id="modal-trade">
-  <div class="modal wide">
-    <div class="modal-header">
-      <div class="modal-title" id="trade-modal-title">Nouveau trade</div>
-      <button class="modal-close" data-close>&times;</button>
-    </div>
-    <form id="trade-form">
-      <div class="grid grid-3">
-        <div class="field"><label>Actif</label><input type="text" id="t-asset" placeholder="XAUUSD" required></div>
-        <div class="field"><label>Classe d'actif</label>
-          <select id="t-assetclass"><option>Forex</option><option>Indices</option><option>Or</option><option>Argent</option><option>Matières premières</option><option>Actions</option><option>ETF</option><option>Cryptomonnaies</option></select>
-        </div>
-        <div class="field"><label>Stratégie</label><select id="t-strategy"></select></div>
-      </div>
-
-      <div class="field">
-        <label>Direction</label>
-        <div class="radiogroup">
-          <label><input type="radio" name="t-direction" value="Buy" checked><span>Achat</span></label>
-          <label class="rg-sell"><input type="radio" name="t-direction" value="Sell"><span>Vente</span></label>
-        </div>
-      </div>
-
-      <div class="grid grid-2">
-        <div class="field"><label>Entrée (date &amp; heure)</label><input type="datetime-local" id="t-entrytime" required></div>
-        <div class="field"><label>Sortie (date &amp; heure)</label><input type="datetime-local" id="t-exittime"></div>
-      </div>
-
-      <div class="grid grid-3">
-        <div class="field"><label>Taille de position</label><input type="number" step="any" id="t-size"></div>
-        <div class="field"><label>Prix d'entrée</label><input type="number" step="any" id="t-entryprice"></div>
-        <div class="field"><label>Prix de sortie</label><input type="number" step="any" id="t-exitprice"></div>
-      </div>
-      <div class="grid grid-3">
-        <div class="field"><label>Stop loss</label><input type="number" step="any" id="t-sl"></div>
-        <div class="field"><label>Take profit</label><input type="number" step="any" id="t-tp"></div>
-        <div class="field"><label>RR obtenu (auto ou manuel)</label><input type="number" step="any" id="t-rr"></div>
-      </div>
-
-      <div class="grid grid-3">
-        <div class="field"><label>Profit / perte (devise)</label><input type="number" step="any" id="t-pnl" required></div>
-        <div class="field"><label>Commission</label><input type="number" step="any" id="t-commission" value="0"></div>
-        <div class="field"><label>Swap</label><input type="number" step="any" id="t-swap" value="0"></div>
-      </div>
-
-      <div class="grid grid-2">
-        <div class="field"><label>Session</label>
-          <select id="t-session"><option value="auto">Détection automatique</option><option>Asie</option><option>Londres</option><option>New York</option><option>Hors session</option></select>
-        </div>
-        <div class="field"><label>État émotionnel</label>
-          <select id="t-emotion"><option>Calme</option><option>Confiant</option><option>Impatient</option><option>Stressé</option><option>Revanche</option></select>
-        </div>
-      </div>
-
-      <div class="field"><label>Tags (séparés par une virgule)</label><input type="text" id="t-tags" placeholder="breakout, news, A+"></div>
-
-      <label class="checkrow"><input type="checkbox" id="t-plan" checked><span>Le plan de trading a été respecté</span></label>
-
-      <div class="field"><label>Notes</label><textarea id="t-notes" placeholder="Contexte, ressenti, ce qui a fonctionné ou non..."></textarea></div>
-
-      <div class="grid grid-2">
-        <div class="field">
-          <label>Capture avant le trade</label>
-          <div class="upload-box" id="upload-before">Cliquer ou déposer une image</div>
-          <input type="file" accept="image/*" id="t-shot-before" style="display:none;">
-        </div>
-        <div class="field">
-          <label>Capture après le trade</label>
-          <div class="upload-box" id="upload-after">Cliquer ou déposer une image</div>
-          <input type="file" accept="image/*" id="t-shot-after" style="display:none;">
-        </div>
-      </div>
-
-      <div class="modal-foot">
-        <button type="button" class="btn btn-ghost" data-close>Annuler</button>
-        <button type="submit" class="btn btn-primary" id="trade-submit-btn">Enregistrer le trade</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-account">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Nouveau compte</div><button class="modal-close" data-close>&times;</button></div>
-    <div class="field"><label>Nom</label><input type="text" id="a-name" placeholder="FTMO 100k"></div>
-    <div class="field"><label>Broker / type</label><input type="text" id="a-broker" placeholder="Prop firm, personnel..."></div>
-    <div class="grid grid-2">
-      <div class="field"><label>Capital de départ</label><input type="number" step="any" id="a-capital" value="10000"></div>
-      <div class="field"><label>Devise</label><input type="text" id="a-currency" value="USD"></div>
-    </div>
-    <div class="modal-foot"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-primary" id="a-save">Créer le compte</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-strategy">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Nouvelle stratégie</div><button class="modal-close" data-close>&times;</button></div>
-    <div class="field"><label>Nom</label><input type="text" id="st-name" placeholder="SMC — retest OB M15"></div>
-    <div class="field"><label>Description</label><textarea id="st-desc"></textarea></div>
-    <div class="modal-foot"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-primary" id="st-save">Créer</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-goal">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Nouvel objectif</div><button class="modal-close" data-close>&times;</button></div>
-    <div class="field"><label>Type d'objectif</label>
-      <select id="g-type">
-        <option value="trades">Nombre de trades</option>
-        <option value="profit">Profit (devise)</option>
-        <option value="winrate">Win rate minimum (%)</option>
-        <option value="avgrr">RR moyen</option>
-        <option value="plan">Respect du plan (%)</option>
-        <option value="maxdd">Drawdown maximum (%)</option>
-        <option value="daystraded">Jours tradés</option>
-      </select>
-    </div>
-    <div class="grid grid-2">
-      <div class="field"><label>Période</label><select id="g-period"><option value="week">Cette semaine</option><option value="month" selected>Ce mois-ci</option><option value="year">Cette année</option></select></div>
-      <div class="field"><label>Cible</label><input type="number" step="any" id="g-target" value="10"></div>
-    </div>
-    <div class="field"><label>Libellé (optionnel)</label><input type="text" id="g-label" placeholder="ex : Rester discipliné ce mois-ci"></div>
-    <div class="modal-foot"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-primary" id="g-save">Créer l'objectif</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-import">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Importer un rapport (MT5)</div><button class="modal-close" data-close>&times;</button></div>
-    <p class="text-dim" style="margin-top:0;">Exporte ton historique depuis MetaTrader 5 (Terminal → onglet Histoire → clic droit → Rapport), puis charge le fichier ici — CSV ou HTML sont tous les deux acceptés, pas besoin d'Excel. Les colonnes reconnues : date, actif/symbole, type, volume, prix, s/l, t/p, profit.</p>
-    <div class="field"><label>Fichier (CSV ou HTML)</label><input type="file" accept=".csv,.html,.htm" id="csv-file"></div>
-    <div id="csv-preview" class="text-faint" style="font-size:12px;"></div>
-    <div class="modal-foot"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-primary" id="csv-confirm">Importer</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-import-json">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Importer une sauvegarde JSON</div><button class="modal-close" data-close>&times;</button></div>
-    <p class="text-dim" style="margin-top:0;">Cela remplacera toutes les données actuelles de ce navigateur par celles du fichier importé.</p>
-    <div class="field"><label>Fichier JSON</label><input type="file" accept=".json" id="json-file"></div>
-    <div class="modal-foot"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-primary" id="json-confirm">Importer</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-detail">
-  <div class="modal wide">
-    <div class="modal-header"><div class="modal-title">Détail du trade</div><button class="modal-close" data-close>&times;</button></div>
-    <div id="detail-content"></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-connect">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Connecter un compte</div><button class="modal-close" data-close>&times;</button></div>
-    <p class="text-dim" style="margin-top:0;">Choisis une fois le fichier d'historique exporté depuis ton terminal MT5 — CSV ou HTML, les deux sont acceptés, pas besoin d'Excel. Une fois connecté, l'app se resynchronise <strong>automatiquement toutes les minutes</strong> en arrière-plan — tu peux aussi forcer une synchro immédiate ci-dessous.</p>
-    <p class="text-faint" style="font-size:12px;">Fonctionne dans Chrome ou Edge, servi via Live Server (ou tout serveur local) — pas en ouverture directe du fichier (file://).</p>
-    <div id="connect-status" class="text-faint" style="font-size:12.5px;margin:14px 0;">Aucun fichier connecté.</div>
-    <div class="modal-foot" style="justify-content:flex-start;">
-      <button class="btn btn-primary" id="connect-pick">Choisir le fichier</button>
-      <button class="btn btn-ghost" id="connect-sync" disabled>Synchroniser maintenant</button>
-      <button class="btn btn-danger" id="connect-forget" disabled>Déconnecter</button>
-    </div>
-  </div>
-</div>
-
-<div class="lightbox" id="lightbox"><button class="lightbox-close" id="lightbox-close">&times;</button><img id="lightbox-img" src="" alt=""></div>
-
-<div id="toast-stack"></div>
-
-<script src="js/storage.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/connect.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/ai.js"></script>
-<script src="js/app.js"></script>
-</body>
-</html>
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request).then((res) => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        return res;
+      });
+    }).catch(() => caches.match('./index.html'))
+  );
+});
