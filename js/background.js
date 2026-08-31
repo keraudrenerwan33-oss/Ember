@@ -44,7 +44,7 @@
   }
 
   // ---- warp starfield ----
-  const STAR_N = 220;
+  const STAR_N = 650;
   const stars = Array.from({length:STAR_N}, () => spawnStar(true));
   function spawnStar(initial){
     return { x:(Math.random()-0.5)*W, y:(Math.random()-0.5)*H, z: initial ? Math.random()*W : W, pz:0 };
@@ -59,7 +59,7 @@
       const px = (s.x/s.pz)*W + W/2, py = (s.y/s.pz)*W + H/2;
       const size = Math.max(0.4,(1-s.z/W)*2.2);
       const alpha = Math.min(1,(1-s.z/W)*1.1);
-      gctx.strokeStyle = `rgba(248,244,236,${alpha*0.7})`;
+      gctx.strokeStyle = `rgba(248,244,236,${alpha*0.95})`;
       gctx.lineWidth = size; gctx.lineCap = 'round';
       gctx.beginPath(); gctx.moveTo(px,py); gctx.lineTo(sx,sy); gctx.stroke();
     }
@@ -88,10 +88,16 @@
   }
   function panelDefs(){
     return [
-      { cx:.08, cy:.14, w:210, h:120, symbol:'XAUUSD', tickMs:1000, sway:14, phase:0 },
-      { cx:.92, cy:.12, w:190, h:112, symbol:'GBPJPY', tickMs:1300, sway:12, phase:1.4 },
-      { cx:.05, cy:.85, w:180, h:108, symbol:'EURUSD', tickMs:1150, sway:16, phase:2.7 },
-      { cx:.95, cy:.86, w:200, h:118, symbol:'USDJPY', tickMs:1500, sway:13, phase:4.1 },
+      { cx:.09, cy:.13, w:230, h:130, symbol:'XAUUSD', tickMs:1000, sway:16, phase:0 },
+      { cx:.91, cy:.11, w:210, h:122, symbol:'GBPJPY', tickMs:1300, sway:14, phase:1.4 },
+      { cx:.05, cy:.87, w:200, h:116, symbol:'EURUSD', tickMs:1150, sway:18, phase:2.7 },
+      { cx:.95, cy:.88, w:220, h:126, symbol:'USDJPY', tickMs:1500, sway:15, phase:4.1 },
+      { cx:.30, cy:.06, w:190, h:108, symbol:'AUDUSD', tickMs:1250, sway:12, phase:0.8 },
+      { cx:.70, cy:.05, w:200, h:112, symbol:'BTCUSD', tickMs:900,  sway:17, phase:3.2 },
+      { cx:.16, cy:.50, w:185, h:106, symbol:'NAS100', tickMs:1400, sway:20, phase:5.6 },
+      { cx:.84, cy:.52, w:195, h:110, symbol:'US30',   tickMs:1100, sway:19, phase:2.1 },
+      { cx:.40, cy:.94, w:190, h:108, symbol:'GBPUSD', tickMs:1350, sway:14, phase:6.0 },
+      { cx:.62, cy:.95, w:205, h:118, symbol:'SPX500', tickMs:1050, sway:16, phase:1.9 },
     ];
   }
   const panels = panelDefs().map(p => ({ ...p, candles: makeCandles(20), lastTick:0 }));
@@ -117,21 +123,21 @@
     const w = panel.w, h = panel.h, x0 = px-w/2, y0 = py-h/2;
 
     gctx.save();
-    gctx.globalAlpha = 0.4;
-    gctx.fillStyle = 'rgba(20,18,28,0.3)';
-    gctx.strokeStyle = 'rgba(232,178,58,0.18)';
-    gctx.lineWidth = 1;
+    gctx.globalAlpha = 0.65;
+    gctx.fillStyle = 'rgba(20,18,28,0.5)';
+    gctx.strokeStyle = 'rgba(232,178,58,0.32)';
+    gctx.lineWidth = 1.2;
     roundRect(x0,y0,w,h,12); gctx.fill(); gctx.stroke();
 
-    gctx.globalAlpha = 0.5;
+    gctx.globalAlpha = 0.8;
     gctx.font = '600 11px Inter, sans-serif';
-    gctx.fillStyle = 'rgba(248,244,236,0.5)';
+    gctx.fillStyle = 'rgba(248,244,236,0.8)';
     gctx.fillText(panel.symbol, x0+12, y0+18);
 
     const candles = panel.candles;
     const cLast = candles[candles.length-1], cFirst = candles[0];
     const up = cLast.close >= cFirst.open;
-    gctx.fillStyle = up ? 'rgba(124,255,196,0.55)' : 'rgba(255,107,142,0.55)';
+    gctx.fillStyle = up ? 'rgba(124,255,196,0.85)' : 'rgba(255,107,142,0.85)';
     gctx.font = '700 11px Inter, sans-serif';
     gctx.fillText(cLast.close.toFixed(2), x0+w-56, y0+18);
 
@@ -139,12 +145,12 @@
     let lo = Infinity, hi = -Infinity;
     for(const c of candles){ lo = Math.min(lo,c.low); hi = Math.max(hi,c.high); }
     const range = Math.max(0.001, hi-lo), cw = chartW/candles.length;
-    gctx.globalAlpha = 0.5;
+    gctx.globalAlpha = 0.8;
     candles.forEach((c,i) => {
       const cx = chartX + i*cw + cw/2;
       const yFor = (v) => chartY + chartH - ((v-lo)/range)*chartH;
       const yO = yFor(c.open), yC = yFor(c.close), yH = yFor(c.high), yL = yFor(c.low);
-      const col = c.close >= c.open ? 'rgba(124,255,196,0.8)' : 'rgba(255,107,142,0.8)';
+      const col = c.close >= c.open ? 'rgba(124,255,196,0.95)' : 'rgba(255,107,142,0.95)';
       gctx.strokeStyle = col; gctx.fillStyle = col; gctx.lineWidth = 1;
       gctx.beginPath(); gctx.moveTo(cx,yH); gctx.lineTo(cx,yL); gctx.stroke();
       const bodyTop = Math.min(yO,yC), bodyH = Math.max(1.4, Math.abs(yC-yO));
