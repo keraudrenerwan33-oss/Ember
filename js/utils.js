@@ -321,6 +321,10 @@ EF.utils = (function () {
         // les trades mais ne sont pas des Buy/Sell, et faussaient l'import.
         if (!/buy|sell/i.test(type || '')) continue;
         if (!symbol || !symbol.trim()) continue;
+        // ignore les positions encore ouvertes (pas de date de clôture) : leur
+        // profit flottant change à chaque export, ce qui les faisait réapparaître
+        // comme "nouveau trade" à chaque synchro tant qu'elles restaient ouvertes.
+        if (!closeTimeStr || !/^\d{4}\.\d{2}\.\d{2}/.test(closeTimeStr.trim())) continue;
         const parseDate = (s) => {
           if (!s) return null;
           const d = new Date(s.replace(/^(\d{4})\.(\d{2})\.(\d{2})/, '$1-$2-$3'));
