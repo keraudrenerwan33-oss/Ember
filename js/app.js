@@ -395,9 +395,13 @@
     e.preventDefault();
     const acc = activeAccount();
     const sessionRaw = $('#t-session').value;
+    const originalTrade = state.editingTradeId ? state.trades.find(t => t.id === state.editingTradeId) : null;
     let trade = {
       id: state.editingTradeId || U.uid(),
       accountId: acc.id,
+      // conserve l'identifiant MT5 d'origine (sinon une resynchro ré-importe
+      // en double tout trade édité manuellement après son import)
+      externalId: originalTrade ? (originalTrade.externalId || null) : null,
       asset: $('#t-asset').value.trim().toUpperCase(),
       assetClass: $('#t-assetclass').value,
       strategyId: $('#t-strategy').value,
@@ -420,7 +424,7 @@
       notes: $('#t-notes').value.trim(),
       screenshotBefore: state.uploadBefore,
       screenshotAfter: state.uploadAfter,
-      createdAt: state.editingTradeId ? (state.trades.find(t => t.id === state.editingTradeId).createdAt) : new Date().toISOString()
+      createdAt: state.editingTradeId ? originalTrade.createdAt : new Date().toISOString()
     };
     trade = U.computeTradeDerived(trade);
     const acc2 = acc;
