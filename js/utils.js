@@ -316,6 +316,11 @@ EF.utils = (function () {
         if (!/^\d{4}\.\d{2}\.\d{2}/.test(cells[0])) break; // fin de la section
         if (cells.length < 13) continue;
         const [openTimeStr, ticket, symbol, type, volume, openPrice, sl, tp, closeTimeStr, closePrice, commission, swap, profit] = cells;
+        // ignore les lignes qui ne sont pas de vraies positions (dépôts, retraits,
+        // crédits, ajustements de solde) — elles ont le même format de date que
+        // les trades mais ne sont pas des Buy/Sell, et faussaient l'import.
+        if (!/buy|sell/i.test(type || '')) continue;
+        if (!symbol || !symbol.trim()) continue;
         const parseDate = (s) => {
           if (!s) return null;
           const d = new Date(s.replace(/^(\d{4})\.(\d{2})\.(\d{2})/, '$1-$2-$3'));
