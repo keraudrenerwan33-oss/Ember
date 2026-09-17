@@ -77,10 +77,10 @@ EF.connect = (function () {
   // Fusionne les trades importés avec les trades existants : ignore les
   // doublons (même externalId, ou même actif+heure+P&L si pas de ticket).
   function mergeTrades(existingTrades, importedTrades) {
-    const existingKeys = new Set(existingTrades.map(t => t.externalId || (t.asset + '|' + t.entryTime + '|' + t.pnl)));
+    const dedupKey = (t) => t.externalId || (t.asset + '|' + t.entryTime + '|' + t.entryPrice);
+    const existingKeys = new Set(existingTrades.map(dedupKey));
     const fresh = importedTrades.filter(t => {
-      const key = t.externalId || (t.asset + '|' + t.entryTime + '|' + t.pnl);
-      return !existingKeys.has(key);
+      return !existingKeys.has(dedupKey(t));
     });
     return fresh;
   }
