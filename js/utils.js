@@ -369,6 +369,105 @@ EF.utils = (function () {
     }
   }
 
+  // ---------- section "Transactions" / "Deals" des rapports MT5 ----------
+  // Certains rapports (selon le broker / la langue / la version MT5) ont une
+  // section "Positions" vide (elle ne liste que les positions ENCORE
+  // OUVERTES) et ne donnent les trades clôturés que sous forme de lignes
+  // séparées "in" (entrée) / "out" (sortie) dans la section "Transactions"
+  // (ou "Deals" en anglais). On les réassemble ici en trades complets.
+  function parseMT5DealsToTrades(text, accountId) {
+    try {
+      const doc = new DOMParser().parseFromString(text, 'text/html');
+      const trs = Array.from(doc.querySelectorAll('tr'));
+      let startIdx = -1;
+      for (let i = 0; i < trs.length; i++) {
+        const t = trs[i].textContent.trim().toLowerCase();
+        if (t === 'transactions' || t === 'deals' || t === 'transaction' || t === 'deal') { startIdx = i; break; }
+      }
+      if (startIdx === -1) return [];
+
+      const parseDate = (s) => {
+        if (!s) return null;
+        const d = new Date(s.trim().replace(/^(\d{4})\.(\d{2})\.(\d{2})/, '$1-$2-$3'));
+        return isNaN(d) ? null : d.toISOString();
+      };
+      const num = (s) => {
+        if (s == null) return 0;
+        const v = parseFloat(String(s).replace(/[^\d.,-]/g, '').replace(',', '.'));
+        return isNaN(v) ? 0 : v;
+      };
+
+      // file d'attente des entrées ("in") non encore appariées, par symbole
+      const openBySymbol = {};
+      const trades = [];
+
+      for (let i = startIdx + 2; i < trs.length; i++) {
+        const cells = Array.from(trs[i].querySelectorAll('td,th'))
+          .filter(c => !c.classList.contains('hidden'))
+          .map(c => c.textContent.trim());
+        if (!cells.length) continue;
+        if (!/^\d{4}\.\d{2}\.\d{2}/.test(cells[0])) break; // fin de la section
+        if (cells.length < 13) continue;
+        const [timeStr, dealTicket, symbol, type, direction, volume, price, orderTicket, , commission, fees, swap, profit] = cells;
+
+        // ignore dépôts / retraits / crédits / ajustements (pas de vrai trade)
+        if (!/buy|sell/i.test(type || '')) continue;
+        if (!symbol || !symbol.trim()) continue;
+        const dirNorm = (direction || '').trim().toLowerCase();
+        const sym = symbol.toUpperCase();
+
+        if (dirNorm === 'in') {
+          if (!openBySymbol[sym]) openBySymbol[sym] = [];
+          openBySymbol[sym].push({ timeStr, dealTicket, type, volume, price, commission, fees, swap });
+          continue;
+        }
+        if (dirNorm === 'out') {
+          const queue = openBySymbol[sym];
+          const entry = queue && queue.length ? queue.shift() : null;
+          if (!entry) continue; // sortie sans entrée connue (hors de la période exportée) : on l'ignore plutôt que de créer un trade incomplet
+          const entryTime = parseDate(entry.timeStr) || new Date().toISOString();
+          const exitTime = parseDate(timeStr);
+          let trade = {
+            id: uid(),
+            // le ticket du deal d'ENTRÉE identifie ce trade de façon stable et
+            // unique d'un export à l'autre : deux exports du même historique
+            // donnent toujours le même externalId pour le même trade.
+            externalId: entry.dealTicket || null,
+            accountId,
+            asset: sym || 'INCONNU',
+            assetClass: 'Forex',
+            direction: (entry.type || '').toLowerCase().includes('sell') ? 'Sell' : 'Buy',
+            size: num(entry.volume) || null,
+            entryPrice: num(entry.price) || null,
+            exitPrice: num(price) || null,
+            sl: null,
+            tp: null,
+            pnl: num(profit),
+            commission: num(entry.commission) + num(commission),
+            swap: num(entry.swap) + num(swap),
+            rr: null,
+            entryTime, exitTime,
+            durationMinutes: null,
+            strategyId: 'none',
+            session: 'auto',
+            tags: ['import-mt5'],
+            notes: 'Importé automatiquement depuis MT5 (Transactions).',
+            emotion: 'Calme',
+            planRespected: true,
+            screenshotBefore: null,
+            screenshotAfter: null,
+            createdAt: new Date().toISOString()
+          };
+          trades.push(computeTradeDerived(trade));
+        }
+      }
+      return trades;
+    } catch (e) {
+      console.error('parseMT5DealsToTrades error', e);
+      return [];
+    }
+  }
+
   // Point d'entrée unique pour tout import (CSV ou HTML) : tente d'abord la
   // lecture ciblée de la section "Positions" (la plus fiable), et retombe
   // sur le parsing générique par en-têtes si elle ne trouve rien.
@@ -382,6 +481,8 @@ EF.utils = (function () {
     if (looksHtml) {
       const mt5Trades = parseMT5PositionsToTrades(text, accountId);
       if (mt5Trades.length) return mt5Trades;
+      const dealsTrades = parseMT5DealsToTrades(text, accountId);
+      if (dealsTrades.length) return dealsTrades;
     }
     const rows = looksHtml ? parseHTMLReport(text) : parseCSV(text);
     return rows.map(r => mapCsvRowToTrade(r, accountId)).map(computeTradeDerived);
@@ -537,7 +638,7 @@ EF.utils = (function () {
     uid, fmtCurrency, fmtNum, fmtDate, fmtDateTime, fmtTime,
     detectSession, dayOfWeekLabel, computeTradeDerived, groupBy, sum, resultOf,
     computeStats, resolveStrategyName, parseCSV, parseHTMLReport, parseImportFile,
-    parseMT5PositionsToTrades, parseEmberExportCSV, importTradesFromFile, mapCsvRowToTrade,
+    parseMT5PositionsToTrades, parseMT5DealsToTrades, parseEmberExportCSV, importTradesFromFile, mapCsvRowToTrade,
     resizeImageFile, downloadJSON, debounce, readFileSmart
   };
 })();
