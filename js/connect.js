@@ -76,11 +76,23 @@ EF.connect = (function () {
 
   // Fusionne les trades importés avec les trades existants : ignore les
   // doublons (même externalId, ou même actif+heure+P&L si pas de ticket).
+  // Compare deux trades en tolérant un petit écart d'heure/prix : un ticket
+  // MT5 identique suffit, sinon on tolère jusqu'à 5 min sur l'heure d'entrée
+  // et un tout petit écart de prix (arrondis/formats différents selon l'export).
+  function isSameTrade(a, b) {
+    if (a.externalId && b.externalId) return a.externalId === b.externalId;
+    if (a.asset !== b.asset || a.direction !== b.direction) return false;
+    const t1 = Date.parse(a.entryTime), t2 = Date.parse(b.entryTime);
+    if (!isFinite(t1) || !isFinite(t2) || Math.abs(t1 - t2) > 5 * 60 * 1000) return false;
+    if (a.entryPrice == null || b.entryPrice == null) return false;
+    const tol = Math.max(0.01, Math.abs(a.entryPrice) * 0.001);
+    if (Math.abs(a.entryPrice - b.entryPrice) > tol) return false;
+    return true;
+  }
+
   function mergeTrades(existingTrades, importedTrades) {
-    const dedupKey = (t) => t.externalId || (t.asset + '|' + t.entryTime + '|' + t.entryPrice);
-    const existingKeys = new Set(existingTrades.map(dedupKey));
     const fresh = importedTrades.filter(t => {
-      return !existingKeys.has(dedupKey(t));
+      return !existingTrades.some(e => isSameTrade(e, t));
     });
     return fresh;
   }
