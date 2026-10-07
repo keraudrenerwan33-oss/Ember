@@ -775,11 +775,13 @@
   let autoSyncTimer = null;
   const AUTO_SYNC_MS = 60000;
 
+  let autoSyncFailCount = 0;
   async function silentSync() {
     if (!connectHandle) return;
     try {
       const acc = activeAccount();
       const { fresh } = await EF.connect.sync(connectHandle, acc.id, state.trades);
+      autoSyncFailCount = 0;
       if (fresh.length) {
         state.trades.push(...fresh);
         persistTrades();
@@ -789,7 +791,17 @@
       const statusEl = connectStatusEl();
       if (statusEl) statusEl.textContent = `Synchronisation automatique active (${connectHandle.name}) — dernière vérification à ${new Date().toLocaleTimeString('fr-FR')}.`;
     } catch (e) {
-      // échec silencieux (ex: permission perdue) — la prochaine tentative réessaiera
+      // La sync auto en arrière-plan ne peut pas toujours redemander la
+      // permission d'accès au fichier (ça nécessite un vrai clic de
+      // l'utilisateur). On prévient clairement au lieu d'échouer en silence,
+      // pour que le souci ne passe plus inaperçu.
+      autoSyncFailCount++;
+      const statusEl = connectStatusEl();
+      const msg = e.message === 'PERMISSION_DENIED'
+        ? 'Permission perdue sur le fichier connecté — clique sur "Synchroniser maintenant" pour la redonner.'
+        : 'La synchronisation automatique a échoué — clique sur "Synchroniser maintenant" pour réessayer.';
+      if (statusEl) statusEl.textContent = msg;
+      if (autoSyncFailCount === 1) toast(msg);
     }
   }
   function startAutoSync() {
