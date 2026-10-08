@@ -386,3 +386,9 @@ button{font-family:inherit;}
   #toast-stack{ bottom:74px; right:12px; left:12px; }
   .toast{ text-align:center; }
 }
+
+/* ---- Onglet Absolut (cadre intégré) ---- */
+.page.page-absolut{padding:18px 24px 0;max-width:none}
+.absolut-frame{display:block;width:100%;height:calc(100vh - 150px);min-height:560px;border:0;background:transparent}
+body[data-page="absolut"] #btn-connect-account,body[data-page="absolut"] #btn-import-csv,body[data-page="absolut"] #btn-new-trade{display:none}
+@media(max-width:820px){.page.page-absolut{padding:12px 10px 0}.absolut-frame{height:calc(100vh - 230px)}}

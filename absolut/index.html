@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07060c">
+  <title>Absolut — Journal de trading</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script>if(/[?&]embed=1/.test(location.search))document.documentElement.classList.add('embed')</script>
+  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="embed.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#history"><span class="brand-mark">A</span><span class="brand-copy">absolut<span class="brand-dot">.</span><small>TRADE JOURNAL</small></span></a>
+      <p class="nav-label">MON SUIVI</p>
+      <nav id="navigation" class="navigation" aria-label="Navigation principale">
+        <button class="nav-item active" data-page="history"><span class="nav-icon">↗</span>Historique</button>
+        <button class="nav-item" data-page="errors"><span class="nav-icon">⚑</span>Erreurs à revoir<span class="nav-count" id="error-count">0</span></button>
+        <button class="nav-item" data-page="import"><span class="nav-icon">⇧</span>Importer</button>
+      </nav>
+      <div class="sidebar-foot"><span class="online-dot"></span><span>Données sur cet appareil</span><small id="sidebar-total">0 trade</small></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div><p class="breadcrumb">ABST <span>/</span> JOURNAL PERSONNEL</p><h1 id="page-title">Historique</h1></div>
+        <div class="top-actions"><button class="button button-quiet" id="top-import">⇧ <span>Importer des trades</span></button><button class="button button-primary" id="top-add">＋ <span>Nouveau trade</span></button></div>
+      </header>
+
+      <section class="page active" id="page-history">
+        <div class="page-lead"><div><span class="eyebrow">SIMPLE. CLAIR. À TOI.</span><p>Retrouve une position, relis tes notes et repère ce que tu veux corriger.</p></div><span class="record-count" id="history-count">0 trades</span></div>
+        <div class="history-layout">
+          <section class="panel history-panel">
+            <div class="panel-heading"><h2>Mes trades</h2><span class="quiet" id="history-caption">Les plus récents en premier</span></div>
+            <div class="toolbar"><label class="search-field"><span>⌕</span><input id="search" type="search" placeholder="Actif, setup, note…" aria-label="Rechercher dans les trades"></label><select id="history-filter" aria-label="Filtrer les trades"><option value="all">Tous</option><option value="review">À revoir</option><option value="wins">Gagnants</option><option value="losses">Perdants</option></select><select id="history-sort" aria-label="Trier les trades"><option value="recent">Plus récents</option><option value="old">Plus anciens</option></select></div>
+            <div id="trade-list" class="trade-list"></div>
+            <div class="empty-state" id="history-empty" hidden><div class="empty-symbol">↗</div><h3>Pas encore de trade ici</h3><p>Ajoute une position pour commencer ton historique.</p><button class="button button-primary" data-action="add">＋ Consigner un trade</button></div>
+          </section>
+
+          <aside class="panel detail-panel" id="detail-panel">
+            <div id="trade-detail" class="detail-content"></div>
+            <div class="detail-empty" id="detail-empty"><span class="detail-star">✳</span><p>Sélectionne un trade pour voir sa fiche, ses notes et son état d’esprit.</p></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="page-errors">
+        <div class="page-lead"><div><span class="eyebrow">POUR APPRENDRE, PAS POUR SE JUGER</span><p>Retrouve les trades signalés et les écarts au plan que tu as notés.</p></div><span class="record-count" id="errors-page-count">0 à revoir</span></div>
+        <div class="panel error-panel"><div class="panel-heading"><h2>Erreurs à revoir</h2><span class="quiet">Une perte n’est pas automatiquement une erreur.</span></div><div id="error-list" class="trade-list"></div><div class="empty-state" id="errors-empty" hidden><div class="empty-symbol">✓</div><h3>Rien à revoir pour l’instant</h3><p>Dans une fiche, signale une erreur à analyser ou note un écart à ton plan pour la retrouver ici.</p><button class="button button-quiet" data-page-link="history">Retour à l’historique</button></div></div>
+      </section>
+
+      <section class="page" id="page-import">
+        <div class="page-lead import-lead"><div><span class="eyebrow">IMPORTER UN HISTORIQUE</span><h2>Ajoute plusieurs trades d’un coup.</h2><p>Les trades déjà présents sont reconnus et ignorés. Tu peux ensuite compléter chaque fiche.</p></div></div>
+        <div class="import-layout">
+          <section class="panel import-panel"><input type="file" id="import-file" accept=".csv,.html,.htm,text/csv,text/html" hidden>
+            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choisir ou déposer un export de trades"><span class="upload-mark">⇧</span><h3>Dépose ton fichier ici</h3><p>ou sélectionne-le sur ton appareil</p><button class="button button-primary" id="choose-file" type="button">Choisir un fichier</button><small>CSV · HTML · HTM — exports MT5</small></div>
+            <div class="import-status" id="import-status" aria-live="polite"><span class="status-dot"></span><span>Sélectionne un relevé pour afficher l’aperçu.</span></div>
+            <div class="import-actions"><button class="button button-quiet" id="clear-import" type="button">Effacer</button><button class="button button-primary" id="confirm-import" type="button" disabled>Importer les trades</button></div>
+          </section>
+          <aside class="import-guide"><span class="eyebrow">EN TROIS ÉTAPES</span><div class="guide-step"><b>1</b><p><strong>Choisis ton export</strong><br>CSV ou HTML de MetaTrader 5, dont le fichier EmberSync.</p></div><div class="guide-step"><b>2</b><p><strong>Vérifie le résultat</strong><br>Absolut affiche les lignes reconnues et les doublons ignorés.</p></div><div class="guide-step"><b>3</b><p><strong>Complète tes fiches</strong><br>Ajoute ton ressenti, ta note et les erreurs à revoir.</p></div><div class="privacy-note"><span>✳</span><p>Les trades sont conservés dans le stockage local de ce navigateur.</p></div></aside>
+        </div>
+      </section>
+      <footer class="app-footer"><span>ABSOLUT <i>—</i> OBSERVER · COMPRENDRE · PROGRESSER</span><span>Chaque trade mérite une trace.</span></footer>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="trade-modal" aria-hidden="true">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <header class="modal-heading"><div><span class="eyebrow">FICHE PERSONNELLE</span><h2 id="modal-title">Nouveau trade</h2></div><button class="close-modal" type="button" id="close-modal" aria-label="Fermer">×</button></header>
+      <form id="trade-form">
+        <div class="form-label">POSITION</div><div class="form-grid three">
+          <label>Actif<input name="asset" placeholder="XAUUSD" required></label><label>Direction<select name="direction"><option value="Long">Achat / Long</option><option value="Short">Vente / Short</option></select></label><label>Setup<input name="setup" placeholder="ex. cassure + retest"></label>
+          <label>Entrée · date et heure<input name="entryTime" type="datetime-local" required></label><label>Sortie · date et heure<input name="exitTime" type="datetime-local"></label><label>Résultat net ($)<input name="pnl" type="number" step="any" placeholder="0" required></label>
+          <label>Prix d’entrée<input name="entryPrice" type="number" step="any"></label><label>Prix de sortie<input name="exitPrice" type="number" step="any"></label><label>Volume<input name="size" type="number" step="any"></label>
+          <label>Stop-loss<input name="sl" type="number" step="any"></label><label>Take-profit<input name="tp" type="number" step="any"></label><label>Résultat (R)<input name="rMultiple" type="number" step="any" placeholder="ex. 1.5"></label>
+        </div>
+        <div class="form-label">RESSENTI</div><div class="form-grid three">
+          <label>Avant l’entrée<select name="moodBefore"><option value="">Non noté</option><option>Calme</option><option>Confiant</option><option>Concentré</option><option>Hésitant</option><option>Stressé</option><option>Impatient</option><option>Frustré</option><option>FOMO</option><option>Revanche</option></select></label>
+          <label>Pendant<select name="moodDuring"><option value="">Non noté</option><option>Calme</option><option>Confiant</option><option>Concentré</option><option>Hésitant</option><option>Stressé</option><option>Impatient</option><option>Frustré</option><option>FOMO</option><option>Revanche</option></select></label>
+          <label>Après la sortie<select name="moodAfter"><option value="">Non noté</option><option>Satisfait</option><option>Soulagé</option><option>Déçu</option><option>Frustré</option><option>Indifférent</option></select></label>
+          <label>Stress avant · /10<input name="stressBefore" type="number" min="0" max="10" step="1" placeholder="0–10"></label><label>Stress après · /10<input name="stressAfter" type="number" min="0" max="10" step="1" placeholder="0–10"></label><label>Plan de trade<select name="plan"><option value="unknown">À préciser</option><option value="yes">Respecté</option><option value="no">Écart au plan</option></select></label>
+        </div>
+        <div class="form-label">NOTES ET RETOUR D’EXPÉRIENCE</div><div class="form-grid two">
+          <label>Pourquoi as-tu pris ce trade ?<textarea name="thesis" rows="2" placeholder="Contexte, signal, raison d’entrée…"></textarea></label><label>Qu’as-tu bien exécuté ?<textarea name="execution" rows="2" placeholder="Ce que tu veux refaire…"></textarea></label><label>Qu’est-ce que tu retiens ?<textarea name="lesson" rows="2" placeholder="Une chose à retenir pour la prochaine fois…"></textarea></label><label>Note libre<textarea name="note" rows="2" placeholder="Un détail que tu veux garder…"></textarea></label>
+        </div>
+        <label class="check-line"><input type="checkbox" name="emotionalError"><span>Signaler une erreur ou un point à analyser</span></label>
+        <div class="modal-actions"><button class="button button-quiet" type="button" id="cancel-modal">Annuler</button><button class="button button-primary" type="submit">Enregistrer le trade</button></div>
+      </form>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="initial-trades.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(error => console.warn('Absolut : installation hors ligne indisponible.', error)));
+    }
+  </script>
+</body>
+</html>

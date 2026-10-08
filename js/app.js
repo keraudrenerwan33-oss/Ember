@@ -54,13 +54,14 @@
 
   // ================= NAVIGATION =================
   const pageTitles = {
-    dashboard: 'Dashboard', journal: 'Journal', stats: 'Statistiques',
+    dashboard: 'Dashboard', absolut: 'Absolut', stats: 'Statistiques',
     calendar: 'Calendrier', goals: 'Objectifs', coach: 'Coach IA', settings: 'Réglages'
   };
   function switchPage(name) {
     $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === name));
     $$('.page').forEach(p => p.classList.toggle('active', p.dataset.page === name));
     $('#page-title').textContent = pageTitles[name] || name;
+    document.body.dataset.page = name;
     renderPage(name);
   }
   $('#nav').addEventListener('click', (e) => {
@@ -108,10 +109,16 @@
   $('#account-switch-mobile').addEventListener('change', (e) => onAccountChange(e.target.value));
   function currentPage() { return $('.nav-item.active').dataset.page; }
 
+  // ================= ABSOLUT (onglet intégré) =================
+  function mountAbsolut() {
+    const f = $('#absolut-frame');
+    if (f && !f.getAttribute('src')) f.setAttribute('src', f.dataset.src);
+  }
+
   // ================= RENDER ROUTER =================
   function renderPage(name) {
     if (name === 'dashboard') renderDashboard();
-    else if (name === 'journal') renderJournal();
+    else if (name === 'absolut') mountAbsolut();
     else if (name === 'stats') renderStats();
     else if (name === 'calendar') renderCalendar();
     else if (name === 'goals') renderGoals();
@@ -238,6 +245,7 @@
   }
 
   function renderJournal() {
+    if (!$('#journal-list')) return;
     populateJournalFilters();
     const acc = activeAccount();
     let trades = accountTrades();
@@ -297,9 +305,11 @@
     $$('[data-dup]', list).forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); duplicateTrade(btn.dataset.dup); }));
     $$('[data-del]', list).forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); deleteTrade(btn.dataset.del); }));
   }
+  // (ancien onglet Journal remplacé par Absolut : ces filtres n'existent plus dans la page)
   ['j-search', 'j-filter-asset', 'j-filter-strategy', 'j-filter-session', 'j-filter-result', 'j-sort'].forEach(id => {
-    $('#' + id).addEventListener('input', U.debounce(renderJournal, 120));
-    $('#' + id).addEventListener('change', renderJournal);
+    const el = $('#' + id); if (!el) return;
+    el.addEventListener('input', U.debounce(renderJournal, 120));
+    el.addEventListener('change', renderJournal);
   });
 
   function duplicateTrade(id) {
@@ -775,13 +785,11 @@
   let autoSyncTimer = null;
   const AUTO_SYNC_MS = 60000;
 
-  let autoSyncFailCount = 0;
   async function silentSync() {
     if (!connectHandle) return;
     try {
       const acc = activeAccount();
       const { fresh } = await EF.connect.sync(connectHandle, acc.id, state.trades);
-      autoSyncFailCount = 0;
       if (fresh.length) {
         state.trades.push(...fresh);
         persistTrades();
@@ -791,17 +799,7 @@
       const statusEl = connectStatusEl();
       if (statusEl) statusEl.textContent = `Synchronisation automatique active (${connectHandle.name}) — dernière vérification à ${new Date().toLocaleTimeString('fr-FR')}.`;
     } catch (e) {
-      // La sync auto en arrière-plan ne peut pas toujours redemander la
-      // permission d'accès au fichier (ça nécessite un vrai clic de
-      // l'utilisateur). On prévient clairement au lieu d'échouer en silence,
-      // pour que le souci ne passe plus inaperçu.
-      autoSyncFailCount++;
-      const statusEl = connectStatusEl();
-      const msg = e.message === 'PERMISSION_DENIED'
-        ? 'Permission perdue sur le fichier connecté — clique sur "Synchroniser maintenant" pour la redonner.'
-        : 'La synchronisation automatique a échoué — clique sur "Synchroniser maintenant" pour réessayer.';
-      if (statusEl) statusEl.textContent = msg;
-      if (autoSyncFailCount === 1) toast(msg);
+      // échec silencieux (ex: permission perdue) — la prochaine tentative réessaiera
     }
   }
   function startAutoSync() {
