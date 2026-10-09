@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rewind - Backtest de trading</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Cormorant+Garamond:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="embed.css">
+<script src="js/embed.js"></script>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><span>Rewind</span></div>
+    <button class="sessbtn" id="btnSess" title="Changer de session ou de marché"><span class="sico" id="sessIco"></span><b class="mono" id="sessMkt">-</b><span id="sessName">-</span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
+    <div class="px"><span id="pxv" class="pxv">-</span><span id="pxd" class="pxd"></span></div>
+    <div class="grow"></div>
+    <div class="acct">
+      <div><span>Solde</span><b id="aBal">-</b></div>
+      <div><span>Capital</span><b id="aEq">-</b></div>
+      <div><span>Résultat ouvert</span><b id="aFl">-</b></div>
+    </div>
+    <button class="btn" id="btnTheme" title="Changer de thème" aria-label="Changer de thème">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg>
+    </button>
+    <button class="btn" id="btnSet">Réglages</button>
+  </header>
+
+  <main class="main">
+    <section class="stage">
+      <div class="tools">
+        <div class="seg" id="tfs" role="group" aria-label="Unité de temps"></div>
+        <button class="btn" id="btnInd" title="Ajouter un indicateur"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12 5.5 7l3 3L14 3.5"/><path d="M10.5 3.5H14V7"/></svg>Indicateurs</button>
+        <div class="seg" id="ctype" role="group" aria-label="Type de graphique">
+          <button data-ct="candles" aria-pressed="true">Bougies</button>
+          <button data-ct="line" aria-pressed="false">Ligne</button>
+        </div>
+        <button class="btn" id="btnColors" title="Changer les couleurs du graphique"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.4-2.2-.6-1.2 0-2.3 1.4-2.3H17a4 4 0 0 0 4-4c0-4.4-4-9.5-9-9.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>Couleurs</button>
+        <div class="grow"></div>
+        <span class="macct" id="macct"></span>
+        <span class="tag" id="srcTag">Données simulées</span>
+        <button class="btn" id="btnNew">Nouvelle période</button>
+        <button class="btn" id="btnMax" title="Agrandir le graphique (touche F)" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span>Agrandir</span></button>
+      </div>
+      <div class="chartwrap" id="cw">
+        <div class="rail" id="rail" aria-label="Outils de dessin"></div>
+        <canvas id="cv"></canvas>
+        <div class="dtb" id="dtb" hidden></div>
+        <div class="dthint" id="dthint" hidden></div>
+        <button class="autobtn" id="autoBtn" hidden title="Remettre l'échelle de prix en automatique">Auto</button>
+        <div class="tkpill" id="tkPill" hidden>
+          <button class="ps" id="pillSell"><small>Vendre</small><b id="pSell2">-</b></button>
+          <button class="pb" id="pillBuy"><small>Acheter</small><b id="pBuy2">-</b></button>
+          <button class="po" id="tkShow" title="Rouvrir le panneau d'ordre" aria-label="Rouvrir le panneau d'ordre"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5l-7 7 7 7"/></svg></button>
+        </div>
+        <div class="hud" id="hud"></div>
+        <div class="legend" id="legend"></div>
+        <div class="chal" id="chal" hidden>
+          <div class="h"><span>Défi prop firm</span><b id="chSt">En cours</b><button id="chMin" title="Réduire ou agrandir" aria-label="Réduire ou agrandir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button></div>
+          <div class="p"><strong id="chPct">0 %</strong><small>sur 100 %</small></div>
+          <div class="bar"><i id="chBar"></i></div>
+          <div class="s" id="chAmt"></div>
+          <div class="s" id="chLoss"></div>
+        </div>
+        <div class="draftbar" id="draftbar" hidden></div>
+      </div>
+      <div class="transport">
+        <div class="tp" role="group" aria-label="Lecture">
+          <button id="bB10" class="txt" title="Reculer de 10 bougies">-10</button>
+          <button id="bBack" title="Bougie précédente (←)" aria-label="Bougie précédente"><svg viewBox="0 0 16 16"><path d="M13 2.5v11L5.5 8zM3 2.5h2v11H3z"/></svg></button>
+          <button id="bPlay" class="play" title="Lecture / pause (Espace)"><svg viewBox="0 0 16 16" id="icoPlay"><path d="M4 2.5v11L13 8z"/></svg><span id="lblPlay">Lecture</span></button>
+          <button id="bNext" title="Bougie suivante (→)" aria-label="Bougie suivante"><svg viewBox="0 0 16 16"><path d="M3 2.5v11L10.5 8zM11 2.5h2v11h-2z"/></svg></button>
+          <button id="bF10" class="txt" title="Avancer de 10 bougies">+10</button>
+        </div>
+        <select id="spd" class="spd" aria-label="Vitesse de lecture">
+          <option value="1">1 bougie/s</option><option value="2">2 bougies/s</option><option value="5" selected>5 bougies/s</option><option value="10">10 bougies/s</option><option value="25">25 bougies/s</option>
+        </select>
+        <span class="when" id="when">-</span>
+        <input type="range" class="scrub" id="scrub" min="0" max="1" value="0" aria-label="Revenir dans l'historique déjà parcouru">
+        <span class="hint">← → bougie, Maj pour un pas fin, Espace lecture, B acheter, S vendre</span>
+        <button class="btn dshow" id="btnDockShow" aria-pressed="true" title="Afficher ou masquer positions, historique et statistiques">Positions <span id="posCount"></span></button>
+      </div>
+      <div class="dock" id="dock">
+        <div class="dockrs" id="dockrs" title="Glisse pour agrandir ou réduire (double-clic pour réinitialiser)"></div>
+        <div class="tabs" role="tablist">
+          <button role="tab" data-tab="pos" aria-selected="true">Positions</button>
+          <button role="tab" data-tab="hist" aria-selected="false">Historique</button>
+          <button role="tab" data-tab="stats" aria-selected="false">Statistiques</button>
+          <span class="sp"></span>
+          <button id="btnCloseAll" style="color:var(--text);font-weight:500;display:none">Tout clôturer</button>
+          <button id="btnDock" title="Réduire ou ouvrir ce panneau" aria-label="Réduire ou ouvrir ce panneau" style="padding:9px 12px"><svg id="icoDock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+          <button id="btnDockHide" title="Masquer ce panneau (le graphique prend toute la place)" aria-label="Masquer ce panneau" style="padding:9px 12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        </div>
+        <div class="pane" id="pane"></div>
+      </div>
+    </section>
+
+    <aside class="ticket" id="ticket" aria-label="Passer un ordre">
+      <div class="tkh"><h2>Passer un ordre</h2><div class="tkb">
+        <button id="tkMin" title="Réduire le panneau" aria-label="Réduire le panneau"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+        <button id="tkFloat" title="Détacher sur le graphique" aria-label="Détacher sur le graphique"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="7" width="12" height="12"/><path d="M9 7V3h12v12h-6"/></svg></button>
+        <button id="tkHide" title="Masquer le panneau" aria-label="Masquer le panneau"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div></div>
+      <div class="bs">
+        <button class="sell" id="btnSell"><b>Vendre</b><span id="pSell">-</span></button>
+        <button class="buy" id="btnBuy"><b>Acheter</b><span id="pBuy">-</span></button>
+      </div>
+      <div id="hintDraft" class="hint" style="display:block">Clique sur Acheter ou Vendre : l'ordre apparaît sur le graphique. Règle le stop loss, le take profit et l'entrée à la souris, puis valide.</div>
+      <label class="chk"><input type="checkbox" id="quick"> Exécution rapide, sans aperçu</label>
+      <div id="qbox" class="fld" hidden>
+      <div class="seg" id="kinds" role="group" aria-label="Type d'ordre" style="width:100%">
+        <button data-k="market" aria-pressed="true" style="flex:1">Marché</button>
+        <button data-k="limit" aria-pressed="false" style="flex:1">Limite</button>
+        <button data-k="stop" aria-pressed="false" style="flex:1">Stop</button>
+      </div>
+      <div class="fld" id="fPrice" style="display:none"><label for="iPrice">Prix d'entrée</label><input id="iPrice" type="number" step="any" inputmode="decimal"></div>
+      </div>
+      <div class="fld" id="fLots"><label for="iLots">Taille en lots</label><input id="iLots" type="number" step="0.01" min="0.01" value="0.10" inputmode="decimal"></div>
+      <div class="row2">
+        <div class="fld"><label for="iSl">Stop loss <span id="uSl">pips</span></label><input id="iSl" type="number" step="any" min="0" placeholder="aucun" inputmode="decimal"></div>
+        <div class="fld"><label for="iTp">Take profit <span id="uTp">pips</span></label><input id="iTp" type="number" step="any" min="0" placeholder="aucun" inputmode="decimal"></div>
+      </div>
+      <div class="lab"><button class="lnk" id="btnAtr">Remplir avec l'ATR (SL 1x, TP 2x)</button></div>
+      <div class="riskrow">
+        <div class="fld"><label for="iRisk">Risquer en % du solde</label><input id="iRisk" type="number" step="0.1" min="0.1" value="1" inputmode="decimal"></div>
+        <button class="btn" id="btnRisk" style="height:34px">Calculer la taille</button>
+      </div>
+      <div class="info" id="info"></div>
+    </aside>
+  </main>
+</div>
+
+<div class="setup" id="setup" hidden>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <div class="sin">
+    <div class="topline"><div class="brand"><span class="mark" aria-hidden="true"></span><span>Rewind</span></div><button class="btn" id="nBack" hidden>Retour à la session</button></div>
+    <header class="hero">
+      <h1>Prépare ta session de backtest</h1>
+      <p class="lead">Donne un nom à ta session, choisis le marché à rejouer, puis avance bougie par bougie. Active le défi pour tester si tu réussirais une prop firm.</p>
+    </header>
+    <section class="box" aria-label="Nom de la session">
+      <div class="fld"><label for="nName">Nom de la session</label><input id="nName" type="text" maxlength="60" placeholder="Ex. Or, rebond sur 1950" autocomplete="off"></div>
+    </section>
+    <section class="mk" aria-label="Choix du marché">
+      <div class="mkh"><h2>Choisis ton marché</h2><input id="mSearch" type="search" placeholder="Rechercher : EURUSD, or, nasdaq, bitcoin, apple" autocomplete="off"></div>
+      <div class="cats" id="mkts"></div>
+    </section>
+    <div class="cols">
+      <section class="box" aria-label="Capital et défi">
+        <div class="row2">
+          <div class="fld"><label for="nCap">Capital de départ</label><input id="nCap" type="number" step="100" min="100" value="100000" inputmode="decimal"></div>
+          <div class="fld"><label>Devise du compte</label><div class="seg" id="curSeg" role="group" aria-label="Devise"><button type="button" data-c="€" aria-pressed="true" style="flex:1">Euro</button><button type="button" data-c="$" aria-pressed="false" style="flex:1">Dollar</button></div></div>
+        </div>
+        <label class="chk big-chk"><input type="checkbox" id="chOn"> <span><b>Activer le défi</b><br><small>Comme une prop firm : atteins l'objectif de profit sans dépasser la perte maximale.</small></span></label>
+        <div class="chbox" id="chBox" hidden>
+          <div class="row2">
+            <div class="fld"><label for="chT">Objectif de profit en %</label><input id="chT" type="number" step="0.5" min="0.5" value="10" inputmode="decimal"></div>
+            <div class="fld"><label for="chL">Perte maximale en %</label><input id="chL" type="number" step="0.5" min="0.5" value="10" inputmode="decimal"></div>
+          </div>
+          <div class="prev" id="chPrev"></div>
+        </div>
+      </section>
+      <section class="box" aria-label="Sessions enregistrées"><h2>Sessions enregistrées</h2><div id="saved"></div></section>
+    </div>
+    <div class="startbar"><div class="selinfo" id="selInfo"></div><button class="btn go big" id="nGo">Commencer la session</button></div>
+  </div>
+</div>
+
+<div class="fly" id="fly" hidden></div>
+<dialog id="colDlg">
+  <div class="dh"><span>Couleurs du graphique</span><button class="btn sm" id="colClose">Fermer</button></div>
+  <div class="db">
+    <div class="fld"><span class="lab">Thèmes prêts à l'emploi</span><div class="pset" id="cPresets"></div></div>
+    <div class="cgrid" id="cFields"></div>
+    <label class="chk"><input type="checkbox" id="cHollow"> Bougies haussières creuses</label>
+    <label class="chk"><input type="checkbox" id="cGrid"> Afficher la grille</label>
+    <button class="btn" id="cReset">Revenir aux couleurs d'origine</button>
+  </div>
+</dialog>
+<dialog id="txtDlg">
+  <div class="dh"><span>Texte</span><button class="btn sm" id="txClose">Fermer</button></div>
+  <div class="db"><input id="txIn" class="sinp" type="text" maxlength="120" placeholder="Ton texte" autocomplete="off"><button class="btn go" id="txOk">Valider</button></div>
+</dialog>
+<dialog id="indDlg">
+  <div class="dh"><span>Indicateurs</span><button class="btn sm" id="indClose">Fermer</button></div>
+  <div class="db"><input id="indQ" class="sinp" type="search" placeholder="Rechercher : RSI, MACD, Bollinger, Ichimoku, VWAP" autocomplete="off"><div id="indList" class="ilist"></div></div>
+</dialog>
+<dialog id="indSet">
+  <div class="dh"><span id="isTitle">Réglages</span><button class="btn sm" id="isClose">Fermer</button></div>
+  <div class="db" id="isBody"></div>
+</dialog>
+
+<dialog id="dlg">
+  <div class="dh"><span>Réglages</span><button class="btn sm" id="dClose">Fermer</button></div>
+  <div class="db">
+    <div class="fld"><label for="sCom">Commission par lot et par côté</label><input id="sCom" type="number" step="0.5" min="0"></div>
+    <label class="chk"><input type="checkbox" id="sPause"> Mettre en pause quand un ordre est exécuté ou touché</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="sRestart">Recommencer cette période</button>
+      <button class="btn" id="sWipe">Tout effacer</button>
+    </div>
+    <div class="hint" style="display:block">Chaque session a son propre journal, enregistré dans ce navigateur. Le capital et le défi se choisissent à la création de la session.</div>
+  </div>
+</dialog>
+<input type="file" id="file" accept=".csv,.txt,text/csv" hidden>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

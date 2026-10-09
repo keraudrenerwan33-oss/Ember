@@ -1,209 +1,479 @@
-<!doctype html>
-<html lang="fr" data-theme="dark">
+<!DOCTYPE html>
+<html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rewind - Backtest de trading</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Cormorant+Garamond:wght@500;600;700&display=swap">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ember — Journal de trading</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070A">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ember">
 <link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
 </head>
 <body>
-<div class="app">
-  <header class="top">
-    <div class="brand"><span class="mark" aria-hidden="true"></span><span>Rewind</span></div>
-    <button class="sessbtn" id="btnSess" title="Changer de session ou de marché"><span class="sico" id="sessIco"></span><b class="mono" id="sessMkt">-</b><span id="sessName">-</span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
-    <div class="px"><span id="pxv" class="pxv">-</span><span id="pxd" class="pxd"></span></div>
-    <div class="grow"></div>
-    <div class="acct">
-      <div><span>Solde</span><b id="aBal">-</b></div>
-      <div><span>Capital</span><b id="aEq">-</b></div>
-      <div><span>Résultat ouvert</span><b id="aFl">-</b></div>
-    </div>
-    <button class="btn" id="btnTheme" title="Changer de thème" aria-label="Changer de thème">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg>
-    </button>
-    <button class="btn" id="btnSet">Réglages</button>
-  </header>
+<canvas id="bg-canvas"></canvas>
+<div class="app-shell">
 
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">E</div>
+      <div>
+        <div class="brand-name">Ember</div>
+        <div class="brand-tag">Trading Journal</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-page="absolut">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3V4z"/><path d="M8 9h8M8 13h8M8 17h4"/></svg>
+        Absolut
+      </button>
+      <button class="nav-item" data-page="rewind">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 6l-7 6 7 6V6z"/><path d="M20 6l-7 6 7 6V6z"/></svg>
+        Rewind
+      </button>
+      <button class="nav-item" data-page="stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+        Statistiques
+      </button>
+      <button class="nav-item" data-page="calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        Calendrier
+      </button>
+      <button class="nav-item" data-page="goals">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+        Objectifs
+      </button>
+      <button class="nav-item" data-page="coach">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.4 5.5L20 10l-5.6 1.5L12 17l-2.4-5.5L4 10l5.6-1.5L12 3z"/></svg>
+        Coach IA
+      </button>
+      <button class="nav-item" data-page="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Réglages
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <select id="account-switch" class="account-switch"></select>
+      <div class="sidebar-mini" id="account-mini">—</div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
   <main class="main">
-    <section class="stage">
-      <div class="tools">
-        <div class="seg" id="tfs" role="group" aria-label="Unité de temps"></div>
-        <button class="btn" id="btnInd" title="Ajouter un indicateur"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12 5.5 7l3 3L14 3.5"/><path d="M10.5 3.5H14V7"/></svg>Indicateurs</button>
-        <div class="seg" id="ctype" role="group" aria-label="Type de graphique">
-          <button data-ct="candles" aria-pressed="true">Bougies</button>
-          <button data-ct="line" aria-pressed="false">Ligne</button>
-        </div>
-        <button class="btn" id="btnColors" title="Changer les couleurs du graphique"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.4-2.2-.6-1.2 0-2.3 1.4-2.3H17a4 4 0 0 0 4-4c0-4.4-4-9.5-9-9.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>Couleurs</button>
-        <div class="grow"></div>
-        <span class="macct" id="macct"></span>
-        <span class="tag" id="srcTag">Données simulées</span>
-        <button class="btn" id="btnNew">Nouvelle période</button>
-        <button class="btn" id="btnMax" title="Agrandir le graphique (touche F)" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span>Agrandir</span></button>
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-sub" id="page-date">—</div>
+        <div class="topbar-principle" id="page-principle"></div>
       </div>
-      <div class="chartwrap" id="cw">
-        <div class="rail" id="rail" aria-label="Outils de dessin"></div>
-        <canvas id="cv"></canvas>
-        <div class="dtb" id="dtb" hidden></div>
-        <div class="dthint" id="dthint" hidden></div>
-        <button class="autobtn" id="autoBtn" hidden title="Remettre l'échelle de prix en automatique">Auto</button>
-        <div class="tkpill" id="tkPill" hidden>
-          <button class="ps" id="pillSell"><small>Vendre</small><b id="pSell2">-</b></button>
-          <button class="pb" id="pillBuy"><small>Acheter</small><b id="pBuy2">-</b></button>
-          <button class="po" id="tkShow" title="Rouvrir le panneau d'ordre" aria-label="Rouvrir le panneau d'ordre"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5l-7 7 7 7"/></svg></button>
-        </div>
-        <div class="hud" id="hud"></div>
-        <div class="legend" id="legend"></div>
-        <div class="chal" id="chal" hidden>
-          <div class="h"><span>Défi prop firm</span><b id="chSt">En cours</b><button id="chMin" title="Réduire ou agrandir" aria-label="Réduire ou agrandir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button></div>
-          <div class="p"><strong id="chPct">0 %</strong><small>sur 100 %</small></div>
-          <div class="bar"><i id="chBar"></i></div>
-          <div class="s" id="chAmt"></div>
-          <div class="s" id="chLoss"></div>
-        </div>
-        <div class="draftbar" id="draftbar" hidden></div>
+      <div class="topbar-actions">
+        <select id="account-switch-mobile" class="account-switch-mobile"></select>
+        <button class="btn btn-ghost btn-sm" id="btn-connect-account">Connecter un compte</button>
+        <button class="btn btn-ghost btn-sm" id="btn-import-csv">Importer rapport (MT5)</button>
+        <button class="btn btn-primary" id="btn-new-trade">+ Nouveau trade</button>
       </div>
-      <div class="transport">
-        <div class="tp" role="group" aria-label="Lecture">
-          <button id="bB10" class="txt" title="Reculer de 10 bougies">-10</button>
-          <button id="bBack" title="Bougie précédente (←)" aria-label="Bougie précédente"><svg viewBox="0 0 16 16"><path d="M13 2.5v11L5.5 8zM3 2.5h2v11H3z"/></svg></button>
-          <button id="bPlay" class="play" title="Lecture / pause (Espace)"><svg viewBox="0 0 16 16" id="icoPlay"><path d="M4 2.5v11L13 8z"/></svg><span id="lblPlay">Lecture</span></button>
-          <button id="bNext" title="Bougie suivante (→)" aria-label="Bougie suivante"><svg viewBox="0 0 16 16"><path d="M3 2.5v11L10.5 8zM11 2.5h2v11h-2z"/></svg></button>
-          <button id="bF10" class="txt" title="Avancer de 10 bougies">+10</button>
+    </div>
+
+    <!-- ---------- DASHBOARD ---------- -->
+    <section class="page active" data-page="dashboard">
+      <div id="alerts-box" class="section-gap"></div>
+
+      <div class="mosaic section-gap">
+        <div class="tile t-hero">
+          <div class="glow"></div>
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8M21 7v6h-6"/></svg></div>
+          <div class="t-label">Profit total</div>
+          <div class="t-value" id="kpi-total">—</div>
+          <div class="t-foot" id="kpi-total-sub">&nbsp;</div>
         </div>
-        <select id="spd" class="spd" aria-label="Vitesse de lecture">
-          <option value="1">1 bougie/s</option><option value="2">2 bougies/s</option><option value="5" selected>5 bougies/s</option><option value="10">10 bougies/s</option><option value="25">25 bougies/s</option>
-        </select>
-        <span class="when" id="when">-</span>
-        <input type="range" class="scrub" id="scrub" min="0" max="1" value="0" aria-label="Revenir dans l'historique déjà parcouru">
-        <span class="hint">← → bougie, Maj pour un pas fin, Espace lecture, B acheter, S vendre</span>
-        <button class="btn dshow" id="btnDockShow" aria-pressed="true" title="Afficher ou masquer positions, historique et statistiques">Positions <span id="posCount"></span></button>
+
+        <div class="tile t-chart">
+          <div class="glow"></div>
+          <div class="t-label">Performance</div>
+          <h3>Courbe du capital</h3>
+          <div class="chart-box"><canvas id="chart-equity"></canvas></div>
+        </div>
+
+        <div class="tile t-mini">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></div>
+          <div><div class="t-label">Aujourd'hui</div><div class="t-value" id="kpi-day">—</div></div>
+        </div>
+        <div class="tile t-mini">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+          <div><div class="t-label">Cette semaine</div><div class="t-value" id="kpi-week">—</div></div>
+        </div>
+        <div class="tile t-mini">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h.01M12 14h.01M16 14h.01"/></svg></div>
+          <div><div class="t-label">Ce mois-ci</div><div class="t-value" id="kpi-month">—</div></div>
+        </div>
+        <div class="tile t-mini">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.6" fill="currentColor"/></svg></div>
+          <div><div class="t-label">Win rate</div><div class="t-value" id="kpi-winrate">—</div><div class="kpi-sub" id="kpi-winrate-sub">&nbsp;</div></div>
+        </div>
+        <div class="tile t-mini">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg></div>
+          <div><div class="t-label">Trades</div><div class="t-value" id="kpi-count">—</div><div class="kpi-sub" id="kpi-count-sub">&nbsp;</div></div>
+        </div>
+        <div class="tile t-mini">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M5 7l-3 6a3 3 0 006 0zM19 7l-3 6a3 3 0 006 0zM5 7h14"/></svg></div>
+          <div><div class="t-label">RR moyen</div><div class="t-value" id="kpi-avgrr">—</div></div>
+        </div>
+
+        <div class="tile t-pnl">
+          <div class="glow"></div>
+          <div class="t-label">Détail</div>
+          <h3>P&amp;L par trade</h3>
+          <div class="chart-box"><canvas id="chart-pnl"></canvas></div>
+        </div>
+
+        <div class="tile t-mini">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg></div>
+          <div><div class="t-label">Profit factor</div><div class="t-value" id="kpi-pf">—</div></div>
+        </div>
+        <div class="tile t-mini">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 7l10 10M17 7v10H7"/></svg></div>
+          <div><div class="t-label">Drawdown actuel</div><div class="t-value" id="kpi-dd">—</div></div>
+        </div>
+        <div class="tile t-mini">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 7L7 17M7 7v10h10"/></svg></div>
+          <div><div class="t-label">Plus gros gain</div><div class="t-value pos" id="kpi-best">—</div></div>
+        </div>
+        <div class="tile t-mini">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 7l10 10M17 7v10H7"/></svg></div>
+          <div><div class="t-label">Plus grosse perte</div><div class="t-value neg" id="kpi-worst">—</div></div>
+        </div>
+
+        <div class="tile t-donut-big">
+          <h4>Gains / pertes</h4>
+          <div class="chart-box"><canvas id="chart-winloss"></canvas></div>
+        </div>
+
+        <div class="t-donut-row">
+          <div class="t-donut-sm"><h4>Buy / Sell</h4><div class="chart-box"><canvas id="chart-buysell"></canvas></div></div>
+          <div class="t-donut-sm"><h4>Par actif</h4><div class="chart-box"><canvas id="chart-asset"></canvas></div></div>
+          <div class="t-donut-sm"><h4>Par session</h4><div class="chart-box"><canvas id="chart-session"></canvas></div></div>
+        </div>
+
+        <div class="tile t-mini" style="grid-column:span 3;">
+          <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+          <div><div class="t-label">Durée moy. en position</div><div class="t-value" id="kpi-duration">—</div></div>
+        </div>
       </div>
-      <div class="dock" id="dock">
-        <div class="dockrs" id="dockrs" title="Glisse pour agrandir ou réduire (double-clic pour réinitialiser)"></div>
-        <div class="tabs" role="tablist">
-          <button role="tab" data-tab="pos" aria-selected="true">Positions</button>
-          <button role="tab" data-tab="hist" aria-selected="false">Historique</button>
-          <button role="tab" data-tab="stats" aria-selected="false">Statistiques</button>
-          <span class="sp"></span>
-          <button id="btnCloseAll" style="color:var(--text);font-weight:500;display:none">Tout clôturer</button>
-          <button id="btnDock" title="Réduire ou ouvrir ce panneau" aria-label="Réduire ou ouvrir ce panneau" style="padding:9px 12px"><svg id="icoDock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
-          <button id="btnDockHide" title="Masquer ce panneau (le graphique prend toute la place)" aria-label="Masquer ce panneau" style="padding:9px 12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-title">Derniers trades</div>
+          <div id="dash-recent"></div>
         </div>
-        <div class="pane" id="pane"></div>
+        <div class="card">
+          <div class="card-title">Objectifs</div>
+          <div id="dash-goals"></div>
+        </div>
       </div>
     </section>
 
-    <aside class="ticket" id="ticket" aria-label="Passer un ordre">
-      <div class="tkh"><h2>Passer un ordre</h2><div class="tkb">
-        <button id="tkMin" title="Réduire le panneau" aria-label="Réduire le panneau"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
-        <button id="tkFloat" title="Détacher sur le graphique" aria-label="Détacher sur le graphique"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="7" width="12" height="12"/><path d="M9 7V3h12v12h-6"/></svg></button>
-        <button id="tkHide" title="Masquer le panneau" aria-label="Masquer le panneau"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      </div></div>
-      <div class="bs">
-        <button class="sell" id="btnSell"><b>Vendre</b><span id="pSell">-</span></button>
-        <button class="buy" id="btnBuy"><b>Acheter</b><span id="pBuy">-</span></button>
+    <!-- ---------- JOURNAL ---------- -->
+    <section class="page page-absolut" data-page="absolut">
+      <iframe id="absolut-frame" class="absolut-frame" title="Absolut" data-src="absolut/index.html?embed=1" loading="lazy"></iframe>
+    </section>
+
+    <section class="page page-absolut" data-page="rewind">
+      <iframe id="rewind-frame" class="absolut-frame" title="Rewind" data-src="rewind/index.html?embed=1" loading="lazy"></iframe>
+    </section>
+
+    <!-- ---------- STATISTIQUES ---------- -->
+    <section class="page" data-page="stats">
+      <div class="grid grid-4 section-gap">
+        <div class="kpi"><div class="kpi-label">Win rate</div><div class="kpi-value" id="s-winrate">—</div></div>
+        <div class="kpi"><div class="kpi-label">Loss rate</div><div class="kpi-value" id="s-lossrate">—</div></div>
+        <div class="kpi"><div class="kpi-label">Break-even rate</div><div class="kpi-value" id="s-berate">—</div></div>
+        <div class="kpi"><div class="kpi-label">Expectancy</div><div class="kpi-value" id="s-expectancy">—</div></div>
+        <div class="kpi"><div class="kpi-label">Profit moyen</div><div class="kpi-value pos" id="s-avgwin">—</div></div>
+        <div class="kpi"><div class="kpi-label">Perte moyenne</div><div class="kpi-value neg" id="s-avgloss">—</div></div>
+        <div class="kpi"><div class="kpi-label">RR moyen</div><div class="kpi-value" id="s-avgrr">—</div></div>
+        <div class="kpi"><div class="kpi-label">RR max / min</div><div class="kpi-value" id="s-rrminmax" style="font-size:16px;">—</div></div>
+        <div class="kpi"><div class="kpi-label">Série de victoires (record)</div><div class="kpi-value pos" id="s-beststreak">—</div></div>
+        <div class="kpi"><div class="kpi-label">Série de défaites (record)</div><div class="kpi-value neg" id="s-worststreak">—</div></div>
+        <div class="kpi"><div class="kpi-label">Drawdown max</div><div class="kpi-value neg" id="s-maxdd">—</div></div>
+        <div class="kpi"><div class="kpi-label">Drawdown actuel</div><div class="kpi-value" id="s-curdd">—</div></div>
       </div>
-      <div id="hintDraft" class="hint" style="display:block">Clique sur Acheter ou Vendre : l'ordre apparaît sur le graphique. Règle le stop loss, le take profit et l'entrée à la souris, puis valide.</div>
-      <label class="chk"><input type="checkbox" id="quick"> Exécution rapide, sans aperçu</label>
-      <div id="qbox" class="fld" hidden>
-      <div class="seg" id="kinds" role="group" aria-label="Type d'ordre" style="width:100%">
-        <button data-k="market" aria-pressed="true" style="flex:1">Marché</button>
-        <button data-k="limit" aria-pressed="false" style="flex:1">Limite</button>
-        <button data-k="stop" aria-pressed="false" style="flex:1">Stop</button>
+
+      <div class="grid grid-2 section-gap">
+        <div class="card"><div class="card-title">Performance mensuelle</div><div class="chart-box"><canvas id="chart-monthly"></canvas></div></div>
+        <div class="card"><div class="card-title">Performance annuelle</div><div class="chart-box"><canvas id="chart-yearly"></canvas></div></div>
       </div>
-      <div class="fld" id="fPrice" style="display:none"><label for="iPrice">Prix d'entrée</label><input id="iPrice" type="number" step="any" inputmode="decimal"></div>
+
+      <div class="grid grid-2 section-gap">
+        <div class="card"><div class="card-title">Performance par jour de la semaine</div><div id="s-byday"></div></div>
+        <div class="card"><div class="card-title">Performance par heure</div><div id="s-byhour"></div></div>
       </div>
-      <div class="fld" id="fLots"><label for="iLots">Taille en lots</label><input id="iLots" type="number" step="0.01" min="0.01" value="0.10" inputmode="decimal"></div>
-      <div class="row2">
-        <div class="fld"><label for="iSl">Stop loss <span id="uSl">pips</span></label><input id="iSl" type="number" step="any" min="0" placeholder="aucun" inputmode="decimal"></div>
-        <div class="fld"><label for="iTp">Take profit <span id="uTp">pips</span></label><input id="iTp" type="number" step="any" min="0" placeholder="aucun" inputmode="decimal"></div>
+
+      <div class="grid grid-2">
+        <div class="card"><div class="card-title">Performance par actif</div><div id="s-byasset"></div></div>
+        <div class="card"><div class="card-title">Performance par stratégie</div><div id="s-bystrategy"></div></div>
       </div>
-      <div class="lab"><button class="lnk" id="btnAtr">Remplir avec l'ATR (SL 1x, TP 2x)</button></div>
-      <div class="riskrow">
-        <div class="fld"><label for="iRisk">Risquer en % du solde</label><input id="iRisk" type="number" step="0.1" min="0.1" value="1" inputmode="decimal"></div>
-        <button class="btn" id="btnRisk" style="height:34px">Calculer la taille</button>
+    </section>
+
+    <!-- ---------- CALENDRIER ---------- -->
+    <section class="page" data-page="calendar">
+      <div class="card">
+        <div class="cal-head">
+          <button class="icon-btn" id="cal-prev">‹</button>
+          <div class="cal-month" id="cal-month-label">—</div>
+          <button class="icon-btn" id="cal-next">›</button>
+        </div>
+        <div class="cal-grid" id="cal-dow"></div>
+        <div class="cal-grid" id="cal-grid" style="margin-top:6px;"></div>
       </div>
-      <div class="info" id="info"></div>
-    </aside>
+      <div class="card section-gap" id="cal-day-detail" style="display:none;margin-top:16px;"></div>
+    </section>
+
+    <!-- ---------- OBJECTIFS ---------- -->
+    <section class="page" data-page="goals">
+      <div class="flex-between section-gap">
+        <div class="text-dim">Fixe des objectifs et suis ta progression en temps réel.</div>
+        <button class="btn btn-primary" id="btn-new-goal">+ Nouvel objectif</button>
+      </div>
+      <div id="goals-list"></div>
+    </section>
+
+    <!-- ---------- COACH IA ---------- -->
+    <section class="page" data-page="coach">
+      <div class="card">
+        <div class="card-title">Coach IA</div>
+        <p class="text-dim" style="margin:0 0 16px;">Analyse automatiquement l'ensemble de tes trades : erreurs récurrentes, sur-trading, excès de risque, meilleures stratégies, actifs et heures les plus rentables, erreurs psychologiques.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btn-coach-full">Analyse complète</button>
+          <button class="btn btn-ghost" id="btn-coach-week">Résumé de la semaine</button>
+          <button class="btn btn-ghost" id="btn-coach-month">Résumé du mois</button>
+        </div>
+        <div id="coach-result"></div>
+      </div>
+    </section>
+
+    <!-- ---------- RÉGLAGES ---------- -->
+    <section class="page" data-page="settings">
+      <div class="grid grid-2 section-gap">
+        <div class="card">
+          <div class="card-title">Comptes <button class="btn btn-ghost btn-sm" id="btn-new-account">+ Compte</button></div>
+          <div id="accounts-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Stratégies <button class="btn btn-ghost btn-sm" id="btn-new-strategy">+ Stratégie</button></div>
+          <div id="strategies-list"></div>
+        </div>
+      </div>
+
+      <div class="card section-gap">
+        <div class="card-title">Coach IA — Clé API Anthropic</div>
+        <div class="field">
+          <label for="settings-apikey">Clé API</label>
+          <input type="password" id="settings-apikey" placeholder="sk-ant-...">
+        </div>
+        <p class="text-faint" style="font-size:12px;margin:-4px 0 12px;">Stockée uniquement dans le navigateur (localStorage), jamais envoyée ailleurs qu'à l'API Anthropic. Ne partage jamais ce fichier avec ta clé enregistrée dedans.</p>
+        <button class="btn btn-ghost btn-sm" id="btn-save-apikey">Enregistrer la clé</button>
+      </div>
+
+      <div class="card section-gap">
+        <div class="card-title">Sauvegarde des données</div>
+        <p class="text-dim" style="margin:0 0 14px;">Toutes les données sont stockées localement dans ce navigateur. Exporte régulièrement une sauvegarde.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" id="btn-export">Exporter (JSON)</button>
+          <button class="btn btn-ghost" id="btn-import-json">Importer (JSON)</button>
+          <button class="btn btn-danger" id="btn-reset">Réinitialiser toutes les données</button>
+        </div>
+      </div>
+    </section>
+
   </main>
 </div>
 
-<div class="setup" id="setup" hidden>
-  <canvas id="stars" aria-hidden="true"></canvas>
-  <div class="sin">
-    <div class="topline"><div class="brand"><span class="mark" aria-hidden="true"></span><span>Rewind</span></div><button class="btn" id="nBack" hidden>Retour à la session</button></div>
-    <header class="hero">
-      <h1>Prépare ta session de backtest</h1>
-      <p class="lead">Donne un nom à ta session, choisis le marché à rejouer, puis avance bougie par bougie. Active le défi pour tester si tu réussirais une prop firm.</p>
-    </header>
-    <section class="box" aria-label="Nom de la session">
-      <div class="fld"><label for="nName">Nom de la session</label><input id="nName" type="text" maxlength="60" placeholder="Ex. Or, rebond sur 1950" autocomplete="off"></div>
-    </section>
-    <section class="mk" aria-label="Choix du marché">
-      <div class="mkh"><h2>Choisis ton marché</h2><input id="mSearch" type="search" placeholder="Rechercher : EURUSD, or, nasdaq, bitcoin, apple" autocomplete="off"></div>
-      <div class="cats" id="mkts"></div>
-    </section>
-    <div class="cols">
-      <section class="box" aria-label="Capital et défi">
-        <div class="row2">
-          <div class="fld"><label for="nCap">Capital de départ</label><input id="nCap" type="number" step="100" min="100" value="100000" inputmode="decimal"></div>
-          <div class="fld"><label>Devise du compte</label><div class="seg" id="curSeg" role="group" aria-label="Devise"><button type="button" data-c="€" aria-pressed="true" style="flex:1">Euro</button><button type="button" data-c="$" aria-pressed="false" style="flex:1">Dollar</button></div></div>
-        </div>
-        <label class="chk big-chk"><input type="checkbox" id="chOn"> <span><b>Activer le défi</b><br><small>Comme une prop firm : atteins l'objectif de profit sans dépasser la perte maximale.</small></span></label>
-        <div class="chbox" id="chBox" hidden>
-          <div class="row2">
-            <div class="fld"><label for="chT">Objectif de profit en %</label><input id="chT" type="number" step="0.5" min="0.5" value="10" inputmode="decimal"></div>
-            <div class="fld"><label for="chL">Perte maximale en %</label><input id="chL" type="number" step="0.5" min="0.5" value="10" inputmode="decimal"></div>
-          </div>
-          <div class="prev" id="chPrev"></div>
-        </div>
-      </section>
-      <section class="box" aria-label="Sessions enregistrées"><h2>Sessions enregistrées</h2><div id="saved"></div></section>
+<!-- ===================== MODALS ===================== -->
+<div class="modal-overlay" id="modal-trade">
+  <div class="modal wide">
+    <div class="modal-header">
+      <div class="modal-title" id="trade-modal-title">Nouveau trade</div>
+      <button class="modal-close" data-close>&times;</button>
     </div>
-    <div class="startbar"><div class="selinfo" id="selInfo"></div><button class="btn go big" id="nGo">Commencer la session</button></div>
+    <form id="trade-form">
+      <div class="grid grid-3">
+        <div class="field"><label>Actif</label><input type="text" id="t-asset" placeholder="XAUUSD" required></div>
+        <div class="field"><label>Classe d'actif</label>
+          <select id="t-assetclass"><option>Forex</option><option>Indices</option><option>Or</option><option>Argent</option><option>Matières premières</option><option>Actions</option><option>ETF</option><option>Cryptomonnaies</option></select>
+        </div>
+        <div class="field"><label>Stratégie</label><select id="t-strategy"></select></div>
+      </div>
+
+      <div class="field">
+        <label>Direction</label>
+        <div class="radiogroup">
+          <label><input type="radio" name="t-direction" value="Buy" checked><span>Achat</span></label>
+          <label class="rg-sell"><input type="radio" name="t-direction" value="Sell"><span>Vente</span></label>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="field"><label>Entrée (date &amp; heure)</label><input type="datetime-local" id="t-entrytime" required></div>
+        <div class="field"><label>Sortie (date &amp; heure)</label><input type="datetime-local" id="t-exittime"></div>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="field"><label>Taille de position</label><input type="number" step="any" id="t-size"></div>
+        <div class="field"><label>Prix d'entrée</label><input type="number" step="any" id="t-entryprice"></div>
+        <div class="field"><label>Prix de sortie</label><input type="number" step="any" id="t-exitprice"></div>
+      </div>
+      <div class="grid grid-3">
+        <div class="field"><label>Stop loss</label><input type="number" step="any" id="t-sl"></div>
+        <div class="field"><label>Take profit</label><input type="number" step="any" id="t-tp"></div>
+        <div class="field"><label>RR obtenu (auto ou manuel)</label><input type="number" step="any" id="t-rr"></div>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="field"><label>Profit / perte (devise)</label><input type="number" step="any" id="t-pnl" required></div>
+        <div class="field"><label>Commission</label><input type="number" step="any" id="t-commission" value="0"></div>
+        <div class="field"><label>Swap</label><input type="number" step="any" id="t-swap" value="0"></div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="field"><label>Session</label>
+          <select id="t-session"><option value="auto">Détection automatique</option><option>Asie</option><option>Londres</option><option>New York</option><option>Hors session</option></select>
+        </div>
+        <div class="field"><label>État émotionnel</label>
+          <select id="t-emotion"><option>Calme</option><option>Confiant</option><option>Impatient</option><option>Stressé</option><option>Revanche</option></select>
+        </div>
+      </div>
+
+      <div class="field"><label>Tags (séparés par une virgule)</label><input type="text" id="t-tags" placeholder="breakout, news, A+"></div>
+
+      <label class="checkrow"><input type="checkbox" id="t-plan" checked><span>Le plan de trading a été respecté</span></label>
+
+      <div class="field"><label>Notes</label><textarea id="t-notes" placeholder="Contexte, ressenti, ce qui a fonctionné ou non..."></textarea></div>
+
+      <div class="grid grid-2">
+        <div class="field">
+          <label>Capture avant le trade</label>
+          <div class="upload-box" id="upload-before">Cliquer ou déposer une image</div>
+          <input type="file" accept="image/*" id="t-shot-before" style="display:none;">
+        </div>
+        <div class="field">
+          <label>Capture après le trade</label>
+          <div class="upload-box" id="upload-after">Cliquer ou déposer une image</div>
+          <input type="file" accept="image/*" id="t-shot-after" style="display:none;">
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-close>Annuler</button>
+        <button type="submit" class="btn btn-primary" id="trade-submit-btn">Enregistrer le trade</button>
+      </div>
+    </form>
   </div>
 </div>
 
-<div class="fly" id="fly" hidden></div>
-<dialog id="colDlg">
-  <div class="dh"><span>Couleurs du graphique</span><button class="btn sm" id="colClose">Fermer</button></div>
-  <div class="db">
-    <div class="fld"><span class="lab">Thèmes prêts à l'emploi</span><div class="pset" id="cPresets"></div></div>
-    <div class="cgrid" id="cFields"></div>
-    <label class="chk"><input type="checkbox" id="cHollow"> Bougies haussières creuses</label>
-    <label class="chk"><input type="checkbox" id="cGrid"> Afficher la grille</label>
-    <button class="btn" id="cReset">Revenir aux couleurs d'origine</button>
-  </div>
-</dialog>
-<dialog id="txtDlg">
-  <div class="dh"><span>Texte</span><button class="btn sm" id="txClose">Fermer</button></div>
-  <div class="db"><input id="txIn" class="sinp" type="text" maxlength="120" placeholder="Ton texte" autocomplete="off"><button class="btn go" id="txOk">Valider</button></div>
-</dialog>
-<dialog id="indDlg">
-  <div class="dh"><span>Indicateurs</span><button class="btn sm" id="indClose">Fermer</button></div>
-  <div class="db"><input id="indQ" class="sinp" type="search" placeholder="Rechercher : RSI, MACD, Bollinger, Ichimoku, VWAP" autocomplete="off"><div id="indList" class="ilist"></div></div>
-</dialog>
-<dialog id="indSet">
-  <div class="dh"><span id="isTitle">Réglages</span><button class="btn sm" id="isClose">Fermer</button></div>
-  <div class="db" id="isBody"></div>
-</dialog>
-
-<dialog id="dlg">
-  <div class="dh"><span>Réglages</span><button class="btn sm" id="dClose">Fermer</button></div>
-  <div class="db">
-    <div class="fld"><label for="sCom">Commission par lot et par côté</label><input id="sCom" type="number" step="0.5" min="0"></div>
-    <label class="chk"><input type="checkbox" id="sPause"> Mettre en pause quand un ordre est exécuté ou touché</label>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" id="sRestart">Recommencer cette période</button>
-      <button class="btn" id="sWipe">Tout effacer</button>
+<div class="modal-overlay" id="modal-account">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nouveau compte</div><button class="modal-close" data-close>&times;</button></div>
+    <div class="field"><label>Nom</label><input type="text" id="a-name" placeholder="FTMO 100k"></div>
+    <div class="field"><label>Broker / type</label><input type="text" id="a-broker" placeholder="Prop firm, personnel..."></div>
+    <div class="grid grid-2">
+      <div class="field"><label>Capital de départ</label><input type="number" step="any" id="a-capital" value="10000"></div>
+      <div class="field"><label>Devise</label><input type="text" id="a-currency" value="USD"></div>
     </div>
-    <div class="hint" style="display:block">Chaque session a son propre journal, enregistré dans ce navigateur. Le capital et le défi se choisissent à la création de la session.</div>
+    <div class="modal-foot"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-primary" id="a-save">Créer le compte</button></div>
   </div>
-</dialog>
-<input type="file" id="file" accept=".csv,.txt,text/csv" hidden>
-<div class="toasts" id="toasts" aria-live="polite"></div>
+</div>
 
+<div class="modal-overlay" id="modal-strategy">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nouvelle stratégie</div><button class="modal-close" data-close>&times;</button></div>
+    <div class="field"><label>Nom</label><input type="text" id="st-name" placeholder="SMC — retest OB M15"></div>
+    <div class="field"><label>Description</label><textarea id="st-desc"></textarea></div>
+    <div class="modal-foot"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-primary" id="st-save">Créer</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-goal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nouvel objectif</div><button class="modal-close" data-close>&times;</button></div>
+    <div class="field"><label>Type d'objectif</label>
+      <select id="g-type">
+        <option value="trades">Nombre de trades</option>
+        <option value="profit">Profit (devise)</option>
+        <option value="winrate">Win rate minimum (%)</option>
+        <option value="avgrr">RR moyen</option>
+        <option value="plan">Respect du plan (%)</option>
+        <option value="maxdd">Drawdown maximum (%)</option>
+        <option value="daystraded">Jours tradés</option>
+      </select>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label>Période</label><select id="g-period"><option value="week">Cette semaine</option><option value="month" selected>Ce mois-ci</option><option value="year">Cette année</option></select></div>
+      <div class="field"><label>Cible</label><input type="number" step="any" id="g-target" value="10"></div>
+    </div>
+    <div class="field"><label>Libellé (optionnel)</label><input type="text" id="g-label" placeholder="ex : Rester discipliné ce mois-ci"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-primary" id="g-save">Créer l'objectif</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-import">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Importer un rapport (MT5)</div><button class="modal-close" data-close>&times;</button></div>
+    <p class="text-dim" style="margin-top:0;">Exporte ton historique depuis MetaTrader 5 (Terminal → onglet Histoire → clic droit → Rapport), puis charge le fichier ici — CSV ou HTML sont tous les deux acceptés, pas besoin d'Excel. Les colonnes reconnues : date, actif/symbole, type, volume, prix, s/l, t/p, profit.</p>
+    <div class="field"><label>Fichier (CSV ou HTML)</label><input type="file" accept=".csv,.html,.htm" id="csv-file"></div>
+    <div id="csv-preview" class="text-faint" style="font-size:12px;"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-primary" id="csv-confirm">Importer</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-import-json">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Importer une sauvegarde JSON</div><button class="modal-close" data-close>&times;</button></div>
+    <p class="text-dim" style="margin-top:0;">Cela remplacera toutes les données actuelles de ce navigateur par celles du fichier importé.</p>
+    <div class="field"><label>Fichier JSON</label><input type="file" accept=".json" id="json-file"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-primary" id="json-confirm">Importer</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal wide">
+    <div class="modal-header"><div class="modal-title">Détail du trade</div><button class="modal-close" data-close>&times;</button></div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-connect">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Connecter un compte</div><button class="modal-close" data-close>&times;</button></div>
+    <p class="text-dim" style="margin-top:0;">Choisis une fois le fichier d'historique exporté depuis ton terminal MT5 — CSV ou HTML, les deux sont acceptés, pas besoin d'Excel. Une fois connecté, l'app se resynchronise <strong>automatiquement toutes les minutes</strong> en arrière-plan — tu peux aussi forcer une synchro immédiate ci-dessous.</p>
+    <p class="text-faint" style="font-size:12px;">Fonctionne dans Chrome ou Edge, servi via Live Server (ou tout serveur local) — pas en ouverture directe du fichier (file://).</p>
+    <div id="connect-status" class="text-faint" style="font-size:12.5px;margin:14px 0;">Aucun fichier connecté.</div>
+    <div class="modal-foot" style="justify-content:flex-start;">
+      <button class="btn btn-primary" id="connect-pick">Choisir le fichier</button>
+      <button class="btn btn-ghost" id="connect-sync" disabled>Synchroniser maintenant</button>
+      <button class="btn btn-danger" id="connect-forget" disabled>Déconnecter</button>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox"><button class="lightbox-close" id="lightbox-close">&times;</button><img id="lightbox-img" src="" alt=""></div>
+
+<div id="toast-stack"></div>
+
+<script src="js/background.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/connect.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ai.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

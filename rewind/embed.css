@@ -1,0 +1,5 @@
+/* Rewind dans Ember : l'écran de départ laisse voir le fond d'Ember (étoiles et nébuleuses d'Ember). */
+html.embed,html.embed body{background:transparent}
+html.embed #stars{display:none}
+html.embed .setup{background:transparent!important}
+html.embed body:has(#setup:not([hidden])) .app{visibility:hidden}
