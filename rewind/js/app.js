@@ -74,13 +74,14 @@ function toast(msg, kind){
 }
 
 /* ---------- State ---------- */
-const S = {sid:null, tf:'M15', chalPos:null, chalMin:false, tk:'dock', tkMin:false, tkPos:null, dockMin:false, dockH:232, dockHide:false, cc:{}, dcol:'#6FA8FF', dw:2, dstay:false, magnet:false, dhide:false, max:false, commission:0, pause:true, inds:[{uid:'i0', type:'ema', params:{len:20}, color:'#FFB84D', vis:true}], ctype:'candles', theme:'dark', speed:5, tab:'pos', sessions:{}};
+const S = {sid:null, tf:'M15', favShow:true, favH:false, favPos:null, autoRisk:false, riskPct:1, favs:['trend', 'hline', 'fib', 'measure'], chalPos:null, chalMin:false, tk:'dock', tkMin:false, tkPos:null, dockMin:false, dockH:232, dockHide:false, cc:{}, dcol:'#6FA8FF', dw:2, dstay:false, magnet:false, dhide:false, max:false, commission:0, pause:true, inds:[{uid:'i0', type:'ema', params:{len:20}, color:'#FFB84D', vis:true}], ctype:'candles', theme:'dark', speed:5, tab:'pos', sessions:{}};
 const KEY = 'rewind.v2';
 const datasets = new Map();
 const csvs = {};
 let INST = null, D = null, LAST = 0, SS = null, AGG = {}, VER = 1, ACC = null, DRAFT = null, chPrev = null;
 let V = {bw:9, off:10};
 let kind = 'market', drag = null, mouse = null, GEO = null, levels = [];
+let BEHIT = [];
 let DT = null, DR = null, SEL = null, UNDO = [], TXP = null, HIT = [];
 let playTimer = null;
 let C = {};
@@ -89,7 +90,7 @@ function loadPrefs(){
   try {
     const j = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (!j) return;
-    for (const k of ['tf','commission','pause','inds','ctype','theme','speed','tk','tkMin','tkPos','dockMin','dockH','dockHide','cc','chalPos','chalMin','dcol','dw','dstay','magnet']) if (j[k] !== undefined) S[k] = j[k];
+    for (const k of ['tf','commission','pause','inds','ctype','theme','speed','tk','tkMin','tkPos','dockMin','dockH','dockHide','cc','chalPos','chalMin','autoRisk','riskPct','favs','favShow','favH','favPos','dcol','dw','dstay','magnet']) if (j[k] !== undefined) S[k] = j[k];
     if (j.sessions) S.sessions = j.sessions;
   } catch (e) {}
 }
@@ -100,7 +101,7 @@ function save(){
     try {
       const sessions = {};
       for (const k in S.sessions) if (!S.sessions[k].sym.startsWith('csv:')) sessions[k] = S.sessions[k];
-      localStorage.setItem(KEY, JSON.stringify({tf:S.tf, commission:S.commission, pause:S.pause, inds:S.inds, ctype:S.ctype, theme:S.theme, speed:S.speed, tk:S.tk, tkMin:S.tkMin, tkPos:S.tkPos, dockMin:S.dockMin, dockH:S.dockH, dockHide:S.dockHide, cc:S.cc, chalPos:S.chalPos, chalMin:S.chalMin, dcol:S.dcol, dw:S.dw, dstay:S.dstay, magnet:S.magnet, sessions}, (k, v) => k[0] === '_' ? undefined : v));
+      localStorage.setItem(KEY, JSON.stringify({tf:S.tf, commission:S.commission, pause:S.pause, inds:S.inds, ctype:S.ctype, theme:S.theme, speed:S.speed, tk:S.tk, tkMin:S.tkMin, tkPos:S.tkPos, dockMin:S.dockMin, dockH:S.dockH, dockHide:S.dockHide, cc:S.cc, chalPos:S.chalPos, chalMin:S.chalMin, autoRisk:S.autoRisk, riskPct:S.riskPct, favs:S.favs, favShow:S.favShow, favH:S.favH, favPos:S.favPos, dcol:S.dcol, dw:S.dw, dstay:S.dstay, magnet:S.magnet, sessions}, (k, v) => k[0] === '_' ? undefined : v));
     } catch (e) {}
   }, 350);
 }
@@ -213,7 +214,7 @@ function openSession(id){
   V.off = 10; V.man = null; hideSetup();
   $('#iLots').value = INST.lot.toFixed(2);
   $('#uSl').textContent = $('#uTp').textContent = INST.unit;
-  $('#iSl').value = $('#iTp').value = ''; $('#iPrice').value = '';
+  $('#iSl').value = $('#iTp').value = ''; $('#iPrice').value = ''; $('#iRisk').value = S.riskPct; $('#autoRisk').checked = !!S.autoRisk;
   $('#srcTag').textContent = D.source === 'csv' ? 'Données importées' : 'Données simulées';
   $('#sessMkt').textContent = INST.sym.replace('csv:', ''); $('#sessName').textContent = SS.name;
   $('#sessIco').innerHTML = ico(INST); renderLegend(); renderTfs(); updateRail(); updateDtb(); updateHint(); applyTk(); refresh(); resize(); return true;
@@ -604,6 +605,18 @@ function computeAccount(){
   closed.sort((a, b) => a.r.exitIdx - b.r.exitIdx);
   return {realized, floating, balance:SS.balance0 + realized, equity:SS.balance0 + realized + floating, live, closed};
 }
+function beTrade(tr, quiet){
+  const q = ACC.live.find(z => z.tr.id === tr.id && z.state === 'open'); if (!q) return false;
+  const buy = tr.side === 'buy', entry = q.r.fillPrice, c = D.c[SS.cursor], inProfit = buy ? c > entry : c + INST.sp < entry;
+  if (!inProfit){ if (!quiet) toast('Pas encore en gain : le stop à l\u2019entrée serait déjà touché.', 'down'); return false; }
+  const cur = q.par.sl; if (cur != null && (buy ? cur >= entry : cur <= entry)){ if (!quiet) toast('Le stop est déjà à l\u2019entrée ou mieux.'); return false; }
+  modTrade(tr, {sl:rp(entry)}); if (!quiet) toast('Stop à l\u2019entrée (BE)', 'up'); return true;
+}
+function beAll(){
+  const list = ACC.live.filter(q => q.state === 'open'); if (!list.length){ toast('Aucune position ouverte.'); return; }
+  let n = 0; for (const q of list) if (beTrade(q.tr, true)) n++;
+  toast(n ? `BE sur ${n} position${n > 1 ? 's' : ''}` : 'Aucune position en gain à passer à BE.', n ? 'up' : '');
+}
 function bump(){ VER++; save(); refresh(); }
 function rp(x){ return +x.toFixed(INST.d); }
 function modTrade(tr, patch){
@@ -700,7 +713,7 @@ function updateDraftBar(){
   const kl = k === 'market' ? 'au marché' : (k === 'limit' ? 'ordre limite' : 'ordre stop');
   el.hidden = false;
   el.title = "Glisse les lignes SL, TP et l'entrée sur le graphique. Entrée valide, Échap annule.";
-  el.innerHTML = `<span class="side ${dr.side}">${buy ? 'Achat' : 'Vente'}</span><span class="dt">${lots.toFixed(2)} lot${k === 'market' ? '' : (k === 'limit' ? ' limite' : ' stop')}${risk != null && gain != null && risk < 0 ? '  1:' + (gain / -risk).toFixed(1) : ''}</span>` +
+  el.innerHTML = `<span class="side ${dr.side}">${buy ? 'Achat' : 'Vente'}</span><span class="dt">${lots.toFixed(2)} lot${k === 'market' ? '' : (k === 'limit' ? ' limite' : ' stop')}${risk != null && risk < 0 ? '  risque ' + (-risk / ACC.balance * 100).toFixed(1) + ' %' : ''}${risk != null && gain != null && risk < 0 ? '  1:' + (gain / -risk).toFixed(1) : ''}</span>` +
     `<button class="btn sm go" data-d="ok">Valider</button><button class="btn sm" data-d="no" title="Annuler (Échap)" aria-label="Annuler">\u2715</button>`;
 }
 function cancelDraft(){ DRAFT = null; updateDraftBar(); drawChart(); }
@@ -863,7 +876,7 @@ function readColors(){
   const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
   C = {chart:g('--chart'), grid:g('--grid'), line:g('--line'), text:g('--text'), muted:g('--muted'), up:g('--up'), down:g('--down'), onUp:g('--on-up'), onDown:g('--on-down'), accent:g('--accent'), panel:g('--panel'), ind:{ema20:g('--ind1'), ema50:g('--ind2'), sma200:g('--ind3')}};
   const cc = S.cc || {}, el = document.getElementById('cw');
-  C.cUp = cc.up || C.up; C.cDn = cc.dn || C.down; C.axis = cc.text || C.muted;
+  C.cUp = cc.up || C.up; C.cDn = cc.dn || C.down; C.axis = cc.text || C.muted; C.border = cc.border || 'rgba(0,0,0,.55)';
   if (cc.grid) C.grid = cc.grid;
   const light = cc.bg && lum(cc.bg) > .55;
   if (cc.bg){ C.chart = cc.bg; if (light){ C.text = '#131B26'; if (!cc.text) C.axis = '#66768A'; } }
@@ -877,7 +890,7 @@ function readColors(){
 function resize(){
   const r = cw.getBoundingClientRect(); DPR = Math.min(window.devicePixelRatio || 1, 2);
   CW = Math.floor(r.width) - (window.innerWidth <= 900 ? 38 : 44); CH = Math.floor(r.height);
-  placeChal();
+  placeChal(); placeFav();
   cv.width = CW * DPR; cv.height = CH * DPR; cv.style.width = CW + 'px'; cv.style.height = CH + 'px';
   drawChart();
 }
@@ -887,6 +900,7 @@ function tagBox(x, y, text, bg, fg, border){
   ctx.fillStyle = bg; ctx.fillRect(x0, y - h / 2, w, h);
   if (border){ ctx.strokeStyle = border; ctx.lineWidth = 1; ctx.strokeRect(x0 + .5, y - h / 2 + .5, w - 1, h - 1); }
   ctx.fillStyle = fg; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(text, x0 + 6, y + .5);
+  return x0;
 }
 function fmtV(v){ if (!isFinite(v)) return '-'; if (v === 0) return '0'; const a = Math.abs(v); if (a >= 1e9) return (v / 1e9).toFixed(2) + 'B'; if (a >= 1e6) return (v / 1e6).toFixed(2) + 'M'; if (a >= 1e4) return (v / 1e3).toFixed(1) + 'K'; if (a >= 100) return v.toFixed(1); if (a >= 1) return v.toFixed(2); return v.toFixed(4); }
 function drawInd(r, X, Y, kmin, kmax, PW, bw){
@@ -1042,7 +1056,10 @@ function drawChart(){
       const y1 = yOf(Math.max(c.o, c.c)), y2 = yOf(Math.min(c.o, c.c));
       const bh = Math.max(1, Math.round(y2 - y1));
       if (c.c >= c.o && S.cc && S.cc.hollow && w >= 3){ ctx.lineWidth = 1; ctx.strokeRect(Math.round(x - w / 2) + .5, Math.round(y1) + .5, w - 1, bh - 1); }
-      else ctx.fillRect(Math.round(x - w / 2), Math.round(y1), w, bh);
+      else {
+        ctx.fillRect(Math.round(x - w / 2), Math.round(y1), w, bh);
+        if (!(S.cc && S.cc.noborder) && w >= 3){ ctx.strokeStyle = C.border; ctx.lineWidth = 1; ctx.strokeRect(Math.round(x - w / 2) + .5, Math.round(y1) + .5, w - 1, Math.max(0, bh - 1)); }
+      }
     }
   }
   /* indicateurs superposés */
@@ -1073,7 +1090,7 @@ function drawChart(){
     ctx.strokeStyle = scol; ctx.lineWidth = 1.2; if (q.state === 'pending') ctx.setLineDash([7, 4]);
     ctx.beginPath(); ctx.moveTo(x0, ey); ctx.lineTo(PW, ey); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
     const lblK = q.state === 'open' ? (buy ? 'Achat' : 'Vente') : `${tr.kind === 'limit' ? 'Limite' : 'Stop'} ${buy ? 'achat' : 'vente'}`;
-    tags.push({y:ey, text:`${lblK} ${tr.size.toFixed(2)}${q.state === 'open' ? '  ' + money(q.pnl, true) : ''}`, bg:scol, fg:buy ? C.onUp : C.onDown});
+    tags.push({y:ey, text:`${lblK} ${tr.size.toFixed(2)}${q.state === 'open' ? '  ' + money(q.pnl, true) : ''}`, bg:scol, fg:buy ? C.onUp : C.onDown, be:q.state === 'open' ? tr.id : null});
     if (q.state === 'pending') levels.push({id:tr.id, kind:'price', y:ey});
     const base = q.state === 'open' ? q.r.fillPrice : par.price;
     for (const kd of ['sl', 'tp']){
@@ -1108,7 +1125,15 @@ function drawChart(){
   ctx.restore();
 
   /* etiquettes */
-  for (const t of tags){ if (t.y < TOP - 10 || t.y > MH - 4) continue; if (t.axis) tagBox(CW - 4, t.y, t.text, t.bg, t.fg); else tagBox(PW - 8, t.y, t.text, t.bg, t.fg, t.border); }
+  BEHIT = [];
+  for (const t of tags){
+    if (t.y < TOP - 10 || t.y > MH - 4) continue;
+    if (t.axis) tagBox(CW - 4, t.y, t.text, t.bg, t.fg);
+    else {
+      const bx = tagBox(PW - 8, t.y, t.text, t.bg, t.fg, t.border);
+      if (t.be){ const x0 = bx - 30; ctx.fillStyle = C.chart; ctx.fillRect(x0, t.y - 9, 26, 18); ctx.strokeStyle = C.text; ctx.lineWidth = 1; ctx.strokeRect(x0 + .5, t.y - 8.5, 25, 17); ctx.fillStyle = C.text; ctx.font = '700 11px "Geist", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('BE', x0 + 13, t.y + .5); BEHIT.push({id:t.be, x:x0, y:t.y - 9, w:26, h:18}); }
+    }
+  }
   tagBox(CW - 4, clamp(yOf(P.c), TOP - 8, MH - 4), P.c.toFixed(d), lcol, P.c >= P.o ? C.onCUp : C.onCDn);
 
   /* sous-fenêtres */
@@ -1140,6 +1165,8 @@ function hitLevel(y){ let best = null, bd = 7; for (const l of levels){ const dd
 cv.addEventListener('pointerdown', e => {
   if (!GEO) return; const {x, y} = pos(e); mouse = {x, y};
   closeFly();
+  const bh = BEHIT.find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+  if (bh && !DT && !DR){ const tr = SS.trades.find(t => t.id === bh.id); if (tr) beTrade(tr); return; }
   if (x > GEO.PW){ if (y <= GEO.MH && !DR){ drag = {type:'yscale', y0:y, lo0:GEO.lo, hi0:GEO.hi}; cv.setPointerCapture(e.pointerId); } return; }
   if (y > GEO.PH && !DR && !DT){ drag = {type:'xscale', x0:x, bw0:V.bw}; cv.setPointerCapture(e.pointerId); return; }
   if (dtDown(x, y)){ cv.setPointerCapture(e.pointerId); drawChart(); return; }
@@ -1157,7 +1184,7 @@ cv.addEventListener('pointermove', e => {
     else if (drag.type === 'dhandle'){ const d = getDraw(drag.id); if (d) d.pts[drag.i] = snapPt(x, y); }
     else if (drag.type === 'dmove'){ const d = getDraw(drag.id); if (d){ const dx = x - drag.x0, dy = y - drag.y0; d.pts = drag.orig.map(o => fromScr(o.x + dx, o.y + dy)); } }
     else { drag.price = GEO.pOf(y); if (drag.id === 'draft') setDraftLevel(drag.kind, drag.price); }
-  } else cv.style.cursor = (x > GEO.PW && y <= GEO.MH) ? 'ns-resize' : (y > GEO.PH && x <= GEO.PW) ? 'ew-resize' : (DT || DR) ? 'crosshair' : (hitLevel(y) && x <= GEO.PW ? 'ns-resize' : (y <= GEO.MH && x <= GEO.PW && (hitDraw(x, y) || (SEL && getDraw(SEL) && handleAt(getDraw(SEL), x, y) >= 0)) ? 'move' : 'default'));
+  } else cv.style.cursor = BEHIT.some(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) ? 'pointer' : (x > GEO.PW && y <= GEO.MH) ? 'ns-resize' : (y > GEO.PH && x <= GEO.PW) ? 'ew-resize' : (DT || DR) ? 'crosshair' : (hitLevel(y) && x <= GEO.PW ? 'ns-resize' : (y <= GEO.MH && x <= GEO.PW && (hitDraw(x, y) || (SEL && getDraw(SEL) && handleAt(getDraw(SEL), x, y) >= 0)) ? 'move' : 'default'));
   drawChart();
 });
 function endDrag(commit){
@@ -1204,9 +1231,24 @@ function buildSelect(){
   if (ck.length){ const og = document.createElement('optgroup'); og.label = 'Importé'; for (const k of ck){ const o = document.createElement('option'); o.value = k; o.textContent = csvs[k].inst.name; og.appendChild(o); } sel.appendChild(og); }
 }
 let posSig = '', histSig = '';
+function autoLots(){
+  const el = $('#iLots'); el.readOnly = !!S.autoRisk; if (!S.autoRisk || !ACC) return;
+  const T = readTicket(); if (!(T.sl > 0) || !(T.risk > 0)) return;
+  const unit = INST.pip * INST.cs * (INST.inv ? 1 / D.c[SS.cursor] : 1);
+  el.value = Math.max(.01, Math.floor(ACC.balance * T.risk / 100 / (T.sl * unit + S.commission * 2) * 100) / 100).toFixed(2);
+}
+function updateRiskNote(){
+  const T = readTicket(), cs = SS && ACC && SS.challenge && SS.challenge.on ? challengeState() : null; let txt = '', warn = false;
+  if (cs){ const rem = Math.max(0, SS.challenge.maxLoss - cs.lossNow / SS.balance0 * 100); txt = `Défi : perte maximale restante ${rem.toFixed(1)} % du capital.`; if (T.risk > rem){ txt += ' Ce risque la dépasse.'; warn = true; } }
+  else if (S.autoRisk) txt = 'La taille se calcule à partir du stop loss.';
+  const el = $('#riskNote'); el.textContent = txt; el.className = 'note' + (warn ? ' warn' : '');
+  $('#riskLbl').textContent = cs ? 'Risque par trade (défi)' : 'Risque par trade (% du solde)';
+  $$('#riskChips button').forEach(b => b.setAttribute('aria-pressed', String(Math.abs(parseFloat(b.dataset.r) - T.risk) < 1e-9)));
+}
 function updateTicket(){
   const c = D.c[SS.cursor], d = INST.d;
   $('#pSell').textContent = $('#pSell2').textContent = c.toFixed(d); $('#pBuy').textContent = $('#pBuy2').textContent = (c + INST.sp).toFixed(d);
+  autoLots(); updateRiskNote();
   const T = readTicket(), conv = INST.inv ? 1 / c : 1, unit = INST.pip * INST.cs * conv;
   const risk = T.sl > 0 && T.lots > 0 ? T.sl * unit * T.lots + S.commission * T.lots * 2 : null;
   const gain = T.tp > 0 && T.lots > 0 ? T.tp * unit * T.lots - S.commission * T.lots * 2 : null;
@@ -1226,11 +1268,11 @@ function posRowHtml(q){
   return `<tr><td><span class="side ${tr.side}">${buy ? 'Achat' : 'Vente'}${kl}</span></td><td class="n r">${tr.size.toFixed(2)}</td>` +
     `<td class="n r">${q.state === 'pending' ? inp('price', par.price) : q.r.fillPrice.toFixed(d)}</td><td class="r">${inp('sl', par.sl)}</td><td class="r">${inp('tp', par.tp)}</td>` +
     `<td class="n r" data-pnl="${tr.id}">${q.state === 'open' ? `<span class="${cls(q.pnl)}">${money(q.pnl, true)}</span>` : 'En attente'}</td>` +
-    `<td class="r"><button class="btn sm" data-act="close" data-id="${tr.id}">${q.state === 'open' ? 'Clôturer' : 'Annuler'}</button></td></tr>`;
+    `<td class="r">${q.state === 'open' ? `<button class="btn sm" data-act="be" data-id="${tr.id}" title="Passer le stop à l'entrée">BE</button> ` : ''}<button class="btn sm" data-act="close" data-id="${tr.id}">${q.state === 'open' ? 'Clôturer' : 'Annuler'}</button></td></tr>`;
 }
 function renderPane(){
   const pane = $('#pane'), d = INST.d;
-  $('#btnCloseAll').style.display = S.tab === 'pos' && ACC.live.some(q => q.state === 'open') ? '' : 'none';
+  $('#btnCloseAll').style.display = $('#btnBeAll').style.display = S.tab === 'pos' && ACC.live.some(q => q.state === 'open') ? '' : 'none';
   if (S.tab === 'pos'){
     const sig = ACC.live.map(q => [q.tr.id, q.state, q.par.sl, q.par.tp, q.par.price].join('|')).join(';');
     if (sig !== posSig || !pane.dataset.k || pane.dataset.k !== 'pos'){
@@ -1316,6 +1358,9 @@ $$('#kinds button').forEach(b => b.onclick = () => {
   if (kind !== 'market' && !$('#iPrice').value) $('#iPrice').value = D.c[SS.cursor].toFixed(INST.d);
 });
 $('#btnAtr').onclick = () => { const a = atr(); if (!a){ toast('Pas assez de bougies pour calculer l\u2019ATR.'); return; } $('#iSl').value = Math.max(1, Math.round(a / INST.pip)); $('#iTp').value = Math.max(1, Math.round(2 * a / INST.pip)); if (DRAFT) startDraft(DRAFT.side, true); else updateTicket(); };
+$('#autoRisk').onchange = e => { S.autoRisk = e.target.checked; save(); updateTicket(); updateDraftBar(); drawChart(); };
+$('#riskChips').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (!b) return; $('#iRisk').value = b.dataset.r; S.riskPct = parseFloat(b.dataset.r); S.autoRisk = true; $('#autoRisk').checked = true; save(); updateTicket(); updateDraftBar(); drawChart(); });
+$('#iRisk').addEventListener('input', () => { const v = parseFloat($('#iRisk').value); if (v > 0){ S.riskPct = v; save(); } });
 $('#btnRisk').onclick = () => {
   const T = readTicket(); if (!(T.sl > 0)){ toast("Renseigne un stop loss pour calculer la taille.", 'down'); return; }
   if (!(T.risk > 0)){ toast('Indique un pourcentage de risque.', 'down'); return; }
@@ -1326,7 +1371,8 @@ $('#btnRisk').onclick = () => {
 ['iLots', 'iSl', 'iTp', 'iPrice', 'iRisk'].forEach(id => $('#' + id).addEventListener('input', () => { if (DRAFT && (id === 'iSl' || id === 'iTp')) fieldsToDraft(); updateTicket(); updateDraftBar(); drawChart(); }));
 $$('.tabs [data-tab]').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; $$('.tabs [data-tab]').forEach(x => x.setAttribute('aria-selected', String(x === b))); $('#pane').dataset.k = ''; renderPane(); });
 $('#btnCloseAll').onclick = () => { ACC.live.filter(q => q.state === 'open').forEach(q => q.tr.endIdx = SS.cursor); bump(); };
-$('#pane').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b) closeTrade(+b.dataset.id); });
+$('#pane').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b) return; if (b.dataset.act === 'be'){ const tr = SS.trades.find(t => t.id === +b.dataset.id); if (tr) beTrade(tr); } else closeTrade(+b.dataset.id); });
+$('#btnBeAll').onclick = beAll;
 $('#pane').addEventListener('change', e => {
   const i = e.target.closest('input[data-f]'); if (!i) return;
   const tr = SS.trades.find(t => t.id === +i.dataset.id); if (!tr) return;
@@ -1359,6 +1405,7 @@ window.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')){ e.preventDefault(); undoDraw(); }
   else if ((e.key === 'Delete' || e.key === 'Backspace') && SEL){ e.preventDefault(); deleteSel(); }
   else if (e.key === 'f' || e.key === 'F'){ setMax(!S.max); }
+  else if (e.key === 'e' || e.key === 'E'){ beAll(); }
   else if (e.key === 'ArrowRight'){ e.preventDefault(); step(1, 1, e.shiftKey); }
   else if (e.key === 'ArrowLeft'){ e.preventDefault(); step(-1, 1, e.shiftKey); }
   else if (e.key === ' '){ e.preventDefault(); playTimer ? stop() : play(); }
@@ -1724,10 +1771,48 @@ function updateHint(){
 }
 
 /* barre latérale et fenêtre de choix */
+const STAR_IC = '<svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>';
+const isFav = t => (S.favs || []).includes(t);
+function toggleFav(t){
+  S.favs = S.favs || []; S.favs = isFav(t) ? S.favs.filter(x => x !== t) : S.favs.concat([t]); if (isFav(t)) S.favShow = true; save(); buildRail(); buildFavbar();
+  $$('#fly [data-fav]').forEach(b => b.classList.toggle('on', isFav(b.dataset.fav)));
+}
+const GRIP = '<svg viewBox="0 0 16 12" fill="currentColor"><circle cx="3" cy="3" r="1.2"/><circle cx="8" cy="3" r="1.2"/><circle cx="13" cy="3" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="8" cy="9" r="1.2"/><circle cx="13" cy="9" r="1.2"/></svg>';
+const ROT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5"/></svg>';
+function placeFav(){
+  const el = $('#favbar'), c = $('#cw'); if (!el || !c || el.hidden) return;
+  const r = c.getBoundingClientRect(), w = el.offsetWidth || 44, h = el.offsetHeight || 44, p = S.favPos || {x:62, y:150};
+  el.style.left = clamp(p.x, 0, Math.max(0, r.width - w)) + 'px'; el.style.top = clamp(p.y, 0, Math.max(0, r.height - h)) + 'px';
+}
+function buildFavbar(){
+  const el = $('#favbar'); if (!el) return;
+  const list = (S.favs || []).filter(t => DTOOLS[t]), show = list.length > 0 && S.favShow !== false;
+  el.hidden = !show; if (!show){ updateRail(); return; }
+  el.className = 'favbar' + (S.favH ? ' h' : '');
+  el.innerHTML = `<div class="fb-grip" title="Déplacer la barre" aria-label="Déplacer la barre">${GRIP}</div>` +
+    list.map(t => `<button class="rb" data-t="${t}" title="${DTOOLS[t].name} (clic droit pour retirer des favoris)" aria-label="${DTOOLS[t].name}">${svgI(DTOOLS[t].ic)}</button>`).join('') +
+    `<div class="fsep"></div><button class="rb sm" data-o="1" title="Passer en horizontal ou en vertical" aria-label="Changer l'orientation">${ROT}</button><button class="rb sm" data-c="1" title="Masquer la barre" aria-label="Masquer la barre">${XIC}</button>`;
+  placeFav(); updateRail();
+}
+(() => {
+  const el = $('#favbar'); let dg = null;
+  el.addEventListener('pointerdown', e => { if (!e.target.closest('.fb-grip')) return; const r = el.getBoundingClientRect(); dg = {dx:e.clientX - r.left, dy:e.clientY - r.top}; el.setPointerCapture(e.pointerId); e.preventDefault(); });
+  el.addEventListener('pointermove', e => { if (!dg) return; const c = $('#cw').getBoundingClientRect(); S.favPos = {x:e.clientX - c.left - dg.dx, y:e.clientY - c.top - dg.dy}; placeFav(); });
+  const end = () => { if (dg){ dg = null; save(); } };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  el.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.t){ setTool(b.dataset.t); return; }
+    if (b.dataset.o){ S.favH = !S.favH; save(); buildFavbar(); return; }
+    if (b.dataset.c){ S.favShow = false; save(); buildFavbar(); toast('Barre de favoris masquée. Réaffiche-la avec l\\u2019étoile de la barre de gauche.'); }
+  });
+  el.addEventListener('contextmenu', e => { const b = e.target.closest('[data-t]'); if (!b) return; e.preventDefault(); toggleFav(b.dataset.t); toast('Retiré des favoris.'); });
+})();
 function buildRail(){
   const r = $('#rail');
   const grp = DGROUPS.map(g => `<button class="rb" data-g="${g.id}" title="${g.name}" aria-label="${g.name}">${svgI(DTOOLS[RAILSEL[g.id]].ic)}</button>`).join('');
   r.innerHTML = `<button class="rb" data-t="" title="Curseur (Échap)" aria-label="Curseur">${svgI('<path d="M5 3l13 8-6 1.5L9.5 19z"/>')}</button><div class="rsep"></div>${grp}<div class="rsep"></div>` +
+    `<button class="rb" data-x="favs" title="Afficher ou masquer la barre de favoris" aria-label="Barre de favoris">${STAR_IC}</button>` +
     `<button class="rb" data-x="magnet" title="Aimant : accroche aux ouvertures, hauts, bas et clôtures" aria-label="Aimant">${svgI('<path d="M6 4v8a6 6 0 0 0 12 0V4h-4v8a2 2 0 0 1-4 0V4z"/>')}</button>` +
     `<button class="rb" data-x="stay" title="Garder l'outil actif après chaque tracé" aria-label="Garder l'outil actif">${svgI('<rect x="6" y="11" width="12" height="9"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/>')}</button>` +
     `<button class="rb" data-x="hide" title="Masquer ou afficher les dessins" aria-label="Masquer les dessins">${svgI('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>')}</button>` +
@@ -1739,20 +1824,26 @@ function updateRail(){
   const r = $('#rail'); if (!r) return; const ag = DT ? groupOfTool(DT) : null;
   $$('#rail [data-g]').forEach(b => b.setAttribute('aria-pressed', String(!!ag && ag.id === b.dataset.g)));
   const cb = r.querySelector('[data-t=""]'); if (cb) cb.setAttribute('aria-pressed', String(!DT));
-  const st = {magnet:S.magnet, stay:S.dstay, hide:S.dhide};
+  $$('#favbar [data-t]').forEach(b => b.setAttribute('aria-pressed', String(DT === b.dataset.t)));
+  const st = {magnet:S.magnet, stay:S.dstay, hide:S.dhide, favs:S.favShow !== false && (S.favs || []).length > 0};
   $$('#rail [data-x]').forEach(b => { if (b.dataset.x in st) b.setAttribute('aria-pressed', String(!!st[b.dataset.x])); });
 }
 function closeFly(){ const f = $('#fly'); if (f) f.hidden = true; }
 function openFly(btn, gid){
   const g = DGROUPS.find(x => x.id === gid), f = $('#fly');
-  if (g.tools.length === 1){ setTool(g.tools[0]); return; }
-  f.innerHTML = `<div class="fh">${g.name}</div>` + g.tools.map(t => `<button class="fi" data-t="${t}">${svgI(DTOOLS[t].ic)}<span>${DTOOLS[t].name}</span></button>`).join('');
+  f.innerHTML = `<div class="fh">${g.name}</div>` + g.tools.map(t => `<div class="fir"><button class="fi" data-t="${t}">${svgI(DTOOLS[t].ic)}<span>${DTOOLS[t].name}</span></button><button class="fav${isFav(t) ? ' on' : ''}" data-fav="${t}" title="Ajouter ou retirer des favoris" aria-label="Favori">${STAR_IC}</button></div>`).join('');
   const r = btn.getBoundingClientRect(); f.hidden = false; f.style.left = (r.right + 6) + 'px'; f.style.top = clamp(r.top, 8, Math.max(8, window.innerHeight - f.offsetHeight - 8)) + 'px';
 }
 $('#rail').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.g){ const f = $('#fly'); if (!f.hidden && f.dataset.g === b.dataset.g){ closeFly(); return; } f.dataset.g = b.dataset.g; openFly(b, b.dataset.g); return; }
   if (b.dataset.t === ''){ DT = null; DR = null; closeFly(); updateRail(); updateHint(); drawChart(); return; }
+  if (b.dataset.t){ setTool(b.dataset.t); return; }
+
+  if (b.dataset.x === 'favs'){
+    if (!(S.favs || []).length){ toast('Ajoute des outils avec l\u2019étoile dans les menus pour les voir ici.'); return; }
+    S.favShow = S.favShow === false; save(); buildFavbar(); return;
+  }
   if (b.dataset.x === 'magnet'){ S.magnet = !S.magnet; save(); updateRail(); toast(S.magnet ? 'Aimant activé : les points s\u2019accrochent aux bougies.' : 'Aimant désactivé.'); }
   else if (b.dataset.x === 'stay'){ S.dstay = !S.dstay; save(); updateRail(); toast(S.dstay ? 'L\u2019outil reste actif après chaque tracé.' : 'L\u2019outil se désactive après chaque tracé.'); }
   else if (b.dataset.x === 'hide'){ S.dhide = !S.dhide; updateRail(); drawChart(); }
@@ -1763,7 +1854,7 @@ $('#rail').addEventListener('click', e => {
   }
 });
 $('#rail').addEventListener('input', e => { if (e.target.id === 'dcol'){ S.dcol = e.target.value; save(); } });
-$('#fly').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) setTool(b.dataset.t); });
+$('#fly').addEventListener('click', e => { const fv = e.target.closest('[data-fav]'); if (fv){ toggleFav(fv.dataset.fav); return; } const b = e.target.closest('[data-t]'); if (b) setTool(b.dataset.t); });
 document.addEventListener('pointerdown', e => { if (!e.target.closest('#fly') && !e.target.closest('[data-g]')) closeFly(); });
 
 /* barre de réglage du dessin sélectionné */
@@ -1840,7 +1931,7 @@ $('#pillBuy').onclick = () => order('buy'); $('#pillSell').onclick = () => order
 })();
 
 /* ---------- Couleurs du graphique ---------- */
-const CC_FIELDS = [['up', 'Bougie haussière'], ['dn', 'Bougie baissière'], ['bg', 'Fond du graphique'], ['grid', 'Grille'], ['text', 'Texte et axes']];
+const CC_FIELDS = [['up', 'Bougie haussière'], ['dn', 'Bougie baissière'], ['bg', 'Fond du graphique'], ['grid', 'Grille'], ['text', 'Texte et axes'], ['border', 'Contour des bougies']];
 const CC_PRESETS = [
   {n:'Origine', v:{}},
   {n:'TradingView', v:{up:'#26A69A', dn:'#EF5350', bg:'#131722', grid:'#1E222D', text:'#787B86'}},
@@ -1852,15 +1943,16 @@ const CC_PRESETS = [
 ];
 const hex6 = v => /^#[0-9a-f]{6}$/i.test(v) ? v : '#888888';
 function fillColors(){
-  const cur = {up:C.cUp, dn:C.cDn, bg:C.chart, grid:C.grid, text:C.axis};
+  const cur = {up:C.cUp, dn:C.cDn, bg:C.chart, grid:C.grid, text:C.axis, border:(S.cc && S.cc.border) || '#000000'};
   $('#cFields').innerHTML = CC_FIELDS.map(([k, l]) => `<div class="fld"><label for="cc_${k}">${l}</label><input type="color" id="cc_${k}" data-k="${k}" value="${hex6(cur[k])}"></div>`).join('');
-  $('#cHollow').checked = !!(S.cc && S.cc.hollow); $('#cGrid').checked = !(S.cc && S.cc.nogrid);
+  $('#cBorder').checked = !(S.cc && S.cc.noborder); $('#cHollow').checked = !!(S.cc && S.cc.hollow); $('#cGrid').checked = !(S.cc && S.cc.nogrid);
 }
 function applyColors(){ readColors(); save(); if (SS) drawChart(); }
 $('#cPresets').innerHTML = CC_PRESETS.map((p, i) => `<button data-i="${i}"><i>${['up', 'dn', 'bg'].map(k => `<b style="background:${p.v[k] || (k === 'up' ? '#2FD3A4' : k === 'dn' ? '#FF5C6E' : '#111A25')}"></b>`).join('')}</i>${p.n}</button>`).join('');
 $('#cPresets').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; S.cc = Object.assign({}, CC_PRESETS[+b.dataset.i].v); applyColors(); fillColors(); });
 $('#cFields').addEventListener('input', e => { const k = e.target.dataset.k; if (!k) return; S.cc = S.cc || {}; S.cc[k] = e.target.value; applyColors(); });
 $('#cHollow').onchange = e => { S.cc = S.cc || {}; S.cc.hollow = e.target.checked; applyColors(); };
+$('#cBorder').onchange = e => { S.cc = S.cc || {}; S.cc.noborder = !e.target.checked; applyColors(); };
 $('#cGrid').onchange = e => { S.cc = S.cc || {}; S.cc.nogrid = !e.target.checked; applyColors(); };
 $('#cReset').onclick = () => { S.cc = {}; applyColors(); fillColors(); };
 $('#btnColors').onclick = () => { fillColors(); showDlg($('#colDlg')); };
@@ -1885,7 +1977,7 @@ $('#saved').addEventListener('click', e => {
 /* ---------- Init ---------- */
 loadPrefs();
 document.documentElement.dataset.theme = S.theme === 'light' ? 'light' : 'dark';
-readColors(); renderMkts(); renderLegend(); buildRail();
+readColors(); renderMkts(); renderLegend(); buildRail(); buildFavbar();
 $('#spd').value = String(S.speed);
 $$('#ctype button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.ct === S.ctype)));
 $('#hintDraft').hidden = false;

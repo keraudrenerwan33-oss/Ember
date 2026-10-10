@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="embed.css">
 <script src="js/embed.js"></script>
 </head>
-<body>
 <div class="app">
   <header class="top">
     <div class="brand"><span class="mark" aria-hidden="true"></span><span>Rewind</span></div>
@@ -45,6 +44,7 @@
       </div>
       <div class="chartwrap" id="cw">
         <div class="rail" id="rail" aria-label="Outils de dessin"></div>
+        <div class="favbar" id="favbar" hidden aria-label="Outils favoris"></div>
         <canvas id="cv"></canvas>
         <div class="dtb" id="dtb" hidden></div>
         <div class="dthint" id="dthint" hidden></div>
@@ -78,7 +78,7 @@
         </select>
         <span class="when" id="when">-</span>
         <input type="range" class="scrub" id="scrub" min="0" max="1" value="0" aria-label="Revenir dans l'historique déjà parcouru">
-        <span class="hint">← → bougie, Maj pour un pas fin, Espace lecture, B acheter, S vendre</span>
+        <span class="hint">← → bougie, Maj pour un pas fin, Espace lecture, B acheter, S vendre, E passer à BE</span>
         <button class="btn dshow" id="btnDockShow" aria-pressed="true" title="Afficher ou masquer positions, historique et statistiques">Positions <span id="posCount"></span></button>
       </div>
       <div class="dock" id="dock">
@@ -88,6 +88,7 @@
           <button role="tab" data-tab="hist" aria-selected="false">Historique</button>
           <button role="tab" data-tab="stats" aria-selected="false">Statistiques</button>
           <span class="sp"></span>
+          <button id="btnBeAll" title="Passer le stop de toutes les positions en gain à l'entrée (touche E)" style="color:var(--text);font-weight:500;display:none">Tout BE</button>
           <button id="btnCloseAll" style="color:var(--text);font-weight:500;display:none">Tout clôturer</button>
           <button id="btnDock" title="Réduire ou ouvrir ce panneau" aria-label="Réduire ou ouvrir ce panneau" style="padding:9px 12px"><svg id="icoDock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
           <button id="btnDockHide" title="Masquer ce panneau (le graphique prend toute la place)" aria-label="Masquer ce panneau" style="padding:9px 12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -122,9 +123,11 @@
         <div class="fld"><label for="iTp">Take profit <span id="uTp">pips</span></label><input id="iTp" type="number" step="any" min="0" placeholder="aucun" inputmode="decimal"></div>
       </div>
       <div class="lab"><button class="lnk" id="btnAtr">Remplir avec l'ATR (SL 1x, TP 2x)</button></div>
-      <div class="riskrow">
-        <div class="fld"><label for="iRisk">Risquer en % du solde</label><input id="iRisk" type="number" step="0.1" min="0.1" value="1" inputmode="decimal"></div>
-        <button class="btn" id="btnRisk" style="height:34px">Calculer la taille</button>
+      <div class="fld" id="fRisk">
+        <label for="iRisk"><span id="riskLbl">Risque par trade (% du solde)</span><span class="chk" style="gap:6px"><input type="checkbox" id="autoRisk"> Auto</span></label>
+        <div class="riskrow2"><input id="iRisk" type="number" step="0.05" min="0.05" max="100" value="1" inputmode="decimal"><div class="chips" id="riskChips"><button data-r="0.25">0.25</button><button data-r="0.5">0.5</button><button data-r="1">1</button><button data-r="2">2</button></div></div>
+        <div class="note" id="riskNote"></div>
+        <div class="lab"><button class="lnk" id="btnRisk">Calculer la taille une fois</button></div>
       </div>
       <div class="info" id="info"></div>
     </aside>
@@ -174,6 +177,7 @@
     <div class="fld"><span class="lab">Thèmes prêts à l'emploi</span><div class="pset" id="cPresets"></div></div>
     <div class="cgrid" id="cFields"></div>
     <label class="chk"><input type="checkbox" id="cHollow"> Bougies haussières creuses</label>
+    <label class="chk"><input type="checkbox" id="cBorder"> Contour des bougies</label>
     <label class="chk"><input type="checkbox" id="cGrid"> Afficher la grille</label>
     <button class="btn" id="cReset">Revenir aux couleurs d'origine</button>
   </div>
